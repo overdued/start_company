@@ -1,0 +1,143 @@
+# =============================================================================
+# KunPeng-Cortex 硬件映射表
+# =============================================================================
+# 定义了所有GPIO、I2C、UART、摄像头和舵机的硬件映射关系。
+# 修改此文件前请确保了解硬件连接情况。
+# =============================================================================
+
+# GPIO引脚映射（BCM编号）
+gpio_map:
+  emergency_stop:
+    pin: 18
+    mode: "in"
+    pull: "up"
+    description: "紧急停止按钮输入"
+    
+  motor_left_pwm:
+    pin: 32
+    mode: "out"
+    description: "左电机PWM控制"
+    
+  motor_left_dir:
+    pin: 36
+    mode: "out"
+    description: "左电机方向控制"
+    
+  motor_right_pwm:
+    pin: 33
+    mode: "out"
+    description: "右电机PWM控制"
+    
+  motor_right_dir:
+    pin: 37
+    mode: "out"
+    description: "右电机方向控制"
+    
+  hc_sr04_trig:
+    pin: 16
+    mode: "out"
+    description: "超声波测距触发"
+    
+  hc_sr04_echo:
+    pin: 22
+    mode: "in"
+    description: "超声波测距回波"
+    
+  led_status:
+    pin: 12
+    mode: "out"
+    description: "状态LED指示灯"
+
+# I2C设备映射
+i2c_map:
+  pca9685_servo:
+    bus: 7
+    address: 0x40
+    description: "PCA9685舵机驱动板"
+    
+  ssd1306_oled:
+    bus: 7
+    address: 0x3C
+    description: "SSD1306 OLED显示屏"
+    
+  mpu6050_imu:
+    bus: 7
+    address: 0x68
+    description: "MPU6050惯性测量单元"
+
+# UART设备映射
+uart_map:
+  jy901_gyro:
+    port: "/dev/ttyS2"
+    baudrate: 115200
+    description: "JY901陀螺仪模块"
+    
+  stm32_bridge:
+    port: "/dev/ttyS4"
+    baudrate: 115200
+    description: "STM32下位机桥接"
+    
+  esp32_bridge:
+    port: "/dev/ttyS7"
+    baudrate: 921600
+    description: "ESP32通信桥接"
+
+# 摄像头配置
+camera:
+  orbbec_astra:
+    type: "openni2"
+    rgb_resolution: [1280, 720]
+    depth_resolution: [640, 480]
+    fps: 30
+    description: "奥比中光Astra深度相机"
+    
+  usb_fallback:
+    type: "v4l2"
+    device: "/dev/video0"
+    resolution: [640, 480]
+    fps: 30
+    description: "USB摄像头备用方案"
+
+# 舵机映射（6自由度机械臂）
+servo_map:
+  base_rotation:
+    channel: 0
+    min_angle: 0
+    max_angle: 180
+    default: 90
+    description: "底座旋转关节"
+    
+  shoulder:
+    channel: 1
+    min_angle: 0
+    max_angle: 180
+    default: 90
+    description: "肩部关节"
+    
+  elbow:
+    channel: 2
+    min_angle: 0
+    max_angle: 180
+    default: 90
+    description: "肘部关节"
+    
+  wrist_pitch:
+    channel: 3
+    min_angle: 0
+    max_angle: 180
+    default: 90
+    description: "腕部俯仰"
+    
+  wrist_roll:
+    channel: 4
+    min_angle: 0
+    max_angle: 180
+    default: 90
+    description: "腕部旋转"
+    
+  gripper:
+    channel: 5
+    min_angle: 0
+    max_angle: 90
+    default: 45
+    description: "夹爪"

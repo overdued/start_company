@@ -1,0 +1,101 @@
+# =============================================================================
+# KunPeng-Cortex Python 依赖包
+# =============================================================================
+# 安装: pip install -r requirements.txt
+# =============================================================================
+
+# --- 异步框架 ---
+asyncio-mqtt>=0.16.0
+aiohttp>=3.9.0
+aiofiles>=23.0.0
+
+# --- 串口通信 ---
+pyserial>=3.5
+pyserial-asyncio>=0.6
+
+# --- I2C/SPI 总线 ---
+smbus2>=0.4.2
+spidev>=3.6
+
+# --- GPIO 控制 ---
+gpiod>=2.1
+gpiozero>=2.0
+RPi.GPIO>=0.7.1; platform_machine=='armv7l' or platform_machine=='aarch64'
+
+# --- 配置解析 ---
+PyYAML>=6.0.1
+python-dotenv>=1.0.0
+
+# --- 数值计算 ---
+numpy>=1.24.0
+scipy>=1.11.0
+
+# --- 计算机视觉 ---
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# --- NPU 推理 ---
+onnxruntime-rknn>=1.15.0
+rockchip-dl>=0.0.1
+
+# --- WebSocket 通信 ---
+websocket-server>=0.6.4
+websockets>=12.0
+
+# --- 音频处理 ---
+pyaudio>=0.2.11
+librosa>=0.10.0
+sounddevice>=0.4.6
+SpeechRecognition>=3.10.0
+
+# --- 语音合成 ---
+edge-tts>=6.1.0
+pyttsx3>=2.90
+
+# --- 网络服务 ---
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# --- 传感器 ---
+imufusion>=1.1.0
+
+# --- 深度相机 ---
+openni>=2.3.0
+
+# --- 机器学习 ---
+torch>=2.1.0
+torchvision>=0.16.0
+transformers>=4.35.0
+
+# --- 测试 ---
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-html>=4.1.0
+
+# --- 日志 ---
+loguru>=0.7.0
+
+# --- 监控 ---
+psutil>=5.9.0
+
+# --- 数据序列化 ---
+msgpack>=1.0.7
+protobuf>=4.24.0
+
+# --- 时间管理 ---
+schedule>=1.2.0
+python-crontab>=3.0.0
+
+# --- 开发工具 ---
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.6.0
+
+# --- 文档 ---
+Sphinx>=7.0.0
+
+# --- 其他工具 ---
+requests>=2.31.0
+tqdm>=4.66.0
+pydantic>=2.5.0

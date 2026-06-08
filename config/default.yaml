@@ -1,0 +1,92 @@
+# =============================================================================
+# KunPeng-Cortex 默认配置文件
+# =============================================================================
+# 本文件定义了KunPeng-Cortex系统的所有默认配置参数。
+# 系统启动时会首先加载此配置，随后可被用户自定义配置覆盖。
+# =============================================================================
+
+system:
+  name: "KunPeng-Cortex"
+  version: "1.0.0"
+  debug: false
+  log_level: "INFO"
+  log_path: "logs/"
+  data_path: "data/"
+  temp_path: "/tmp/kunpeng-cortex/"
+
+hardware:
+  platform: "rk3588"
+  gpio_backend: "libgpiod"  # or sysfs
+  pwm_channels: 16
+  i2c_buses: [7, 8]
+  uart_ports: ["/dev/ttyS2", "/dev/ttyS4", "/dev/ttyS7"]
+  spi_buses: [0, 1]
+
+npu:
+  model_path: "models/yolov8/yolov8n.rknn"
+  conf_threshold: 0.25
+  nms_threshold: 0.45
+  max_detections: 100
+  core_mask: 1  # NPU核心掩码
+  async_mode: true
+
+safety:
+  emergency_stop_pin: 18  # GPIO引脚
+  watchdog_timeout: 5.0   # 秒
+  code_execution_timeout: 5.0
+  max_motor_speed: 0.8    # 80%最大速度
+  arm_safety_zone:        # 机械臂安全区域（笛卡尔坐标，单位mm）
+    x_min: -200
+    x_max: 200
+    y_min: 100
+    y_max: 350
+    z_min: 0
+    z_max: 200
+
+performance:
+  target_latency_ms: 50
+  cpu_affinity:
+    agent: [0, 1, 2, 3]      # A76 cores
+    sensors: [4, 5]           # A55 cores
+    communication: [6, 7]     # A55 cores
+  memory_limit_mb: 512
+  priority_boost: true
+
+emotion:
+  caring_enabled: true
+  response_style: "gentle"   # gentle/friendly/professional
+  elderly_mode: true
+  dialect_adaptation: true
+
+communication:
+  app_websocket_port: 8765
+  mcu_uart_port: "/dev/ttyS7"
+  mcu_baudrate: 115200
+  protocol: "jsonrpc"
+  heartbeat_interval: 1.0
+  connection_timeout: 30.0
+
+# 模块级配置
+modules:
+  voice:
+    enabled: true
+    sample_rate: 16000
+    channels: 1
+    chunk_size: 1024
+    language: "zh-CN"
+    
+  vision:
+    enabled: true
+    camera_id: 0
+    resolution: [640, 480]
+    fps: 30
+    
+  navigation:
+    enabled: true
+    map_path: "data/maps/"
+    use_slam: true
+    
+  arm:
+    enabled: true
+    dof: 6
+    speed_ratio: 0.5

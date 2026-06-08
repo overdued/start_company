@@ -1,0 +1,19 @@
+# 本地配置文件
+# 此文件会覆盖 default.yaml 中的默认设置
+system:
+  debug: false
+  log_level: "INFO"
+
+# 请根据实际硬件连接修改以下配置
+hardware:
+  # gpio_backend: "sysfs"
+
+# 个性化配置
+emotion:
+  response_style: "gentle"
+  elderly_mode: true
+
+# WiFi配置示例
+# wifi:
+#   ssid: "Your_SSID"
+#   password: "Your_Password"
