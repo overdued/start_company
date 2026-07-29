@@ -1,0 +1,58 @@
+# KunPeng 声纹语音服务配置
+# 参考: 声纹识别方案_v2.docx 参数汇总表
+
+audio:
+  sample_rate: 16000        # 目标采样率 (Hz)
+  native_rate: 48000        # HK MIC 原生采样率
+  channels: 2               # 硬件声道数
+  block_ms: 30              # 采集块大小 (ms)
+  silence_timeout: 0.5      # 静音截断 (秒)
+
+vad:
+  model: fsmn-vad           # FunASR 内置 VAD
+  silence_duration: 0.5
+  speech_threshold: 0.5
+  min_speech_ms: 300
+
+kws:
+  model_dir: models/sherpa-kws/
+  keywords_file: keywords.txt
+  keywords_threshold: 0.25
+  keywords_score: 1.0
+  num_trailing_blanks: 1
+  max_active_paths: 4
+  provider: cpu
+  num_threads: 2
+  fuzzy_match: true         # 拼音模糊匹配
+  fuzzy_ignore_tone: true   # 忽略声调
+  wake_words:
+    - "小鲲小鲲"
+    - "你好小鲲"
+
+asr:
+  model: iic/SenseVoiceSmall
+  device: cpu
+  min_duration: 0.5         # 最小语音时长 (秒)
+  min_text_length: 2        # 最小转写长度
+  language: zh
+
+voiceprint:
+  model: damo/speech_campplus_sv_zh-cn_16k-common
+  device: cpu
+  embedding_dim: 192
+  verify_threshold: 0.35    # 验证阈值
+  pending_threshold: 0.25   # 待定下界
+  enrollment_duration: 3.0  # 注册最小音频 (秒)
+
+tracker:
+  window_seconds: 15.0      # 唤醒跟踪窗口 (5-30 可调)
+  multi_speaker_threshold: 0.4
+  consecutive_windows: 3
+  window_duration: 2.0
+  window_shift: 0.8
+
+storage:
+  data_dir: data/voice/
+  users_db: users.db
+  embeddings: embeddings.npy
+  pending: pending.npy

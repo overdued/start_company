@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800, initial-scale=1.0">
+<title>小鲲 · hengxiang.HMI 原型</title>
+<script>
+(() => {
+  try {
+    const theme = localStorage.getItem('kunpeng.hmi.theme.v1');
+    document.documentElement.dataset.theme = theme === 'homey' ? 'homey' : 'premium';
+    if (location.pathname === '/companion' || new URLSearchParams(location.search).get('surface') === 'desktop') {
+      document.documentElement.dataset.surface = 'desktop';
+    }
+  } catch (_) {
+    document.documentElement.dataset.theme = 'premium';
+  }
+})();
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  background:var(--bg);color:var(--tx);user-select:none}
+button,input{font:inherit}button:focus-visible,input:focus-visible,.ni:focus-visible,.stab:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px}
+
+:root,html[data-theme="premium"]{
+  --canvas:#101417;--surface-1:#1D252A;--surface-2:#263036;--surface-inset:#151D22;--surface-overlay:rgba(16,20,23,.94);
+  --text-primary:#F3F5F4;--text-secondary:#CBD3D0;--text-muted:#AAB5B0;--text-disabled:#7F8A85;
+  --border-subtle:#37433F;--border-strong:#56645E;
+  --accent:#5FC1D6;--accent-hover:#86D2E1;--accent-soft:rgba(95,193,214,.14);--accent-border:rgba(95,193,214,.35);--on-accent:#101417;
+  --ok:#5DBD76;--warn:#E2AC3B;--err:#E86A67;--blue:#77B8D1;
+  --on-warning:#101417;--on-danger:#101417;
+  --ok-soft:rgba(93,189,118,.16);--warn-soft:rgba(226,172,59,.16);--err-soft:rgba(232,106,103,.16);
+  --focus-ring:#B9EDF6;--boot-bg:linear-gradient(135deg,#101417,#182126);--camera-bg:#0E1519;
+  --r:12px;--rs:9px;--sh:0 10px 26px rgba(4,7,8,.22);--glow:none;
+  --pet-bubble:#202B30;--pet-shell:#1B2F3F;--pet-shell-dark:#111B22;--pet-limb:#2E5364;--pet-face:#F3F5F4;--pet-accent:#5FC1D6;--pet-caring:#77B8D1;--pet-offline:#87938E;
+  --bg:var(--canvas);--bg2:var(--surface-inset);--card:var(--surface-1);--card2:var(--surface-2);--pri:var(--accent);--pri-l:var(--accent-hover);--pri-d:var(--accent);--tx:var(--text-primary);--tx2:var(--text-secondary);--tx3:var(--text-muted);--tx4:var(--text-disabled);--bd:var(--border-subtle);--bd2:var(--border-strong);
+}
+html[data-theme="homey"]{
+  --canvas:#F4EFE6;--surface-1:#FFFDF8;--surface-2:#F1E9DD;--surface-inset:#E8DED0;--surface-overlay:rgba(255,253,248,.96);
+  --text-primary:#2E2B26;--text-secondary:#4E4942;--text-muted:#675F56;--text-disabled:#82776A;
+  --border-subtle:#D7CCBD;--border-strong:#BBAE9D;
+  --accent:#2E6F66;--accent-hover:#245C55;--accent-soft:rgba(46,111,102,.13);--accent-border:rgba(46,111,102,.35);--on-accent:#FFFDF8;
+  --ok:#287C4D;--warn:#A96918;--err:#B94543;--blue:#3A728E;
+  --on-warning:#FFFDF8;--on-danger:#FFFDF8;
+  --ok-soft:rgba(40,124,77,.13);--warn-soft:rgba(169,105,24,.14);--err-soft:rgba(185,69,67,.13);
+  --focus-ring:#173F3A;--boot-bg:linear-gradient(135deg,#F4EFE6,#E8DED0);--camera-bg:#E9E2D8;
+  --r:16px;--rs:12px;--sh:0 8px 22px rgba(78,65,50,.13);--glow:none;
+  --pet-bubble:#FFFDF8;--pet-shell:#52616B;--pet-shell-dark:#34434B;--pet-limb:#71848A;--pet-face:#FFFDF8;--pet-accent:#2E6F66;--pet-caring:#3A728E;--pet-offline:#7F7B75;
+  --bg:var(--canvas);--bg2:var(--surface-inset);--card:var(--surface-1);--card2:var(--surface-2);--pri:var(--accent);--pri-l:var(--accent-hover);--pri-d:var(--accent);--tx:var(--text-primary);--tx2:var(--text-secondary);--tx3:var(--text-muted);--tx4:var(--text-disabled);--bd:var(--border-subtle);--bd2:var(--border-strong);
+}
+
+#app{width:100%;height:100%;position:relative;overflow:hidden;background:var(--bg)}
+
+/* ── Boot ── */
+#boot{position:absolute;inset:0;z-index:1000;
+  background:var(--boot-bg);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  transition:opacity .6s}
+#boot.hide{opacity:0;pointer-events:none}
+.boot-in{display:flex;align-items:center;gap:48px}
+.boot-spin{width:140px;height:140px;position:relative}
+.boot-spin i{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;animation:sp 1.6s linear infinite}
+.boot-spin i:nth-child(1){border-top-color:var(--pri);border-right-color:var(--accent-border)}
+.boot-spin i:nth-child(2){inset:12px;animation:sp 2.2s linear infinite reverse;border-top-color:var(--pri);border-right-color:var(--accent-border)}
+.boot-spin i:nth-child(3){inset:24px;animation:sp 3s linear infinite;border-width:2px;border-top-color:var(--accent-border)}
+@keyframes sp{to{transform:rotate(360deg)}}
+.boot-txt .br{font-size:40px;font-weight:600;letter-spacing:6px;color:var(--tx)}
+.boot-txt .en{font-size:14px;letter-spacing:4px;color:var(--tx3)}
+.boot-bar{display:flex;align-items:center;gap:12px;margin-top:8px}
+.boot-rail{width:200px;height:4px;border-radius:4px;background:var(--accent-soft);overflow:hidden}
+.boot-fill{height:100%;border-radius:4px;background:var(--pri);width:0%;transition:width .3s}
+.boot-lbl{font-size:14px;color:var(--tx3);letter-spacing:2px}
+.boot-st{font-size:14px;color:var(--tx4);letter-spacing:2px;margin-top:4px}
+
+/* ── Status Bar ── */
+#sbar{position:absolute;top:0;left:0;right:0;height:30px;z-index:100;
+  background:var(--surface-overlay);display:flex;align-items:center;
+  justify-content:space-between;padding:0 16px;font-size:14px;color:var(--tx3);
+  border-bottom:1px solid var(--bd)}
+.sb-r{display:flex;gap:10px;align-items:center}
+.sb-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:3px}
+
+/* ── Bottom Nav ── */
+#bnav{position:absolute;bottom:0;left:0;right:0;height:54px;z-index:100;
+  background:var(--card);border-top:1px solid var(--bd);
+  display:flex;align-items:center}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:13px;color:var(--tx4);cursor:pointer;padding:6px 0;transition:color .2s}
+.ni.active{color:var(--pri);font-weight:600}
+.ni .nic{font-size:20px;line-height:1}
+
+/* ── Pages ── */
+#content{position:absolute;top:30px;bottom:54px;left:0;right:0;overflow:hidden}
+.pg{display:none;position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:12px 16px;scrollbar-width:none}
+.pg::-webkit-scrollbar{display:none}
+.pg.active{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── Shared ── */
+.card{background:var(--card);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);margin-bottom:8px}
+.card-t{font-size:15px;font-weight:600;color:var(--tx);margin-bottom:6px;letter-spacing:.3px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+
+/* Sub tabs */
+.stabs{display:flex;gap:4px;margin-bottom:10px}
+.stab{padding:5px 14px;border-radius:16px;font-size:14px;color:var(--tx3);
+  background:var(--card2);cursor:pointer;transition:all .15s;border:1px solid transparent}
+.stab:hover{border-color:var(--pri-l)}
+.stab.active{background:var(--pri);color:var(--on-accent);border-color:var(--pri)}
+.sp{display:none}.sp.active{display:block}
+
+/* Toggle */
+.tgl{width:40px;height:22px;border-radius:11px;background:var(--bd2);cursor:pointer;
+  position:relative;transition:background .2s;flex-shrink:0}
+.tgl::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;
+  border-radius:50%;background:#21283B;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .2s}
+.tgl.on{background:var(--pri)}.tgl.on::after{transform:translateX(18px)}
+
+/* Button */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:10px 18px;border-radius:var(--rs);font-size:15px;font-weight:500;
+  cursor:pointer;border:none;transition:all .15s;letter-spacing:.3px}
+.btn-p{background:var(--pri);color:var(--on-accent)}.btn-p:hover{background:var(--pri-d)}
+.btn-o{background:transparent;border:1px solid var(--pri-l);color:var(--pri)}
+.btn-s{background:var(--card2);color:var(--tx2)}
+.btn-d{background:var(--err);color:var(--on-danger)}
+
+.hm-face{width:72px;height:72px;border-radius:50%;background:var(--bg2);
+  border:2px solid var(--pri-l);display:flex;align-items:center;justify-content:center;
+  font-size:38px;flex-shrink:0;cursor:pointer;transition:transform .2s}
+.hm-face:hover{transform:none}
+.hm-greet{font-size:26px;font-weight:600;color:var(--tx)}
+.hm-date{font-size:16px;color:var(--tx3);margin-top:1px}
+.hm-conn{font-size:15px;color:var(--ok);margin-top:3px}
+.env-c{background:var(--card2);border:1px solid var(--bd);border-radius:var(--rs);padding:10px;text-align:center}
+.env-v{font-size:26px;font-weight:700;color:var(--tx)}
+.env-l{font-size:15px;color:var(--tx3);margin-top:1px}
+.q-btn{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);
+  padding:14px;text-align:center;cursor:pointer;transition:background .15s,border-color .15s; font-size:16px;color:var(--tx2)}
+.q-btn:hover{border-color:var(--accent-border);box-shadow:none}
+.q-btn:active{transform:scale(.98)}
+.q-btn .qi{font-size:26px;margin-bottom:3px}
+.sum-txt{font-size:14px;color:var(--tx2);line-height:1.9}
+.sum-dot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+/* ── CHAT ── */
+#pg-chat{display:none;flex-direction:column;padding:0;overflow:hidden}
+#pg-chat.active{display:flex}
+.ch-msgs{flex:1;overflow-y:auto;padding:12px 16px 8px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
+.ch-msgs::-webkit-scrollbar{display:none}
+.bub{max-width:75%;padding:10px 14px;border-radius:12px;font-size:16px;line-height:1.7;letter-spacing:.2px}
+.bub.u{align-self:flex-end;background:var(--pri);color:var(--on-accent);border-bottom-right-radius:3px}
+.bub.a{align-self:flex-start;background:var(--card);box-shadow:var(--sh);border-bottom-left-radius:3px;color:var(--tx)}
+.bub .hwc{margin-top:5px;background:rgba(63,185,80,.1);border-radius:5px;padding:4px 8px;font-size:13px;color:var(--ok)}
+.ch-bar{flex-shrink:0;padding:6px 12px;background:var(--card);border-top:1px solid var(--bd);display:flex;gap:6px;align-items:center}
+.ch-in{flex:1;padding:9px 14px;border-radius:20px;border:1px solid var(--bd2);font-size:15px;background:var(--bg);outline:none;color:var(--tx)}
+.ch-in:focus{border-color:var(--pri-l)}
+.ch-send{width:38px;height:38px;border-radius:50%;background:var(--pri);color:var(--on-accent);border:none;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ch-voice{width:38px;height:38px;border-radius:50%;background:var(--card2);border:1px solid var(--bd2);color:var(--pri);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ch-hint{font-size:13px;color:var(--tx4);padding:0 16px 4px}
+
+/* Thinking bubble */
+.think-bub{align-self:flex-start;background:var(--card);box-shadow:var(--sh);
+  border-radius:12px;border-bottom-left-radius:3px;padding:10px 16px;display:flex;align-items:center;gap:8px;
+  font-size:15px;color:var(--tx3);animation:fi .25s ease}
+.think-spin{width:20px;height:20px;border:2px solid var(--bd2);border-top-color:var(--pri);
+  border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+
+/* ── REMIND ── */
+.rm-card{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:6px;cursor:pointer;transition:all .15s}
+.rm-card:hover{box-shadow:var(--sh)}
+.rm-t{font-size:19px;font-weight:700;color:var(--tx);width:50px;flex-shrink:0;text-align:center}
+.rm-ic{font-size:24px;flex-shrink:0}
+.rm-bd{flex:1}.rm-nm{font-size:15px;font-weight:500;color:var(--tx)}.rm-ds{font-size:13px;color:var(--tx3);margin-top:1px}
+.rm-ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--bd2);cursor:pointer;transition:all .15s;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+.rm-ck.done{background:var(--ok);border-color:var(--ok);color:var(--on-accent)}
+.rm-card.done{opacity:.45}
+
+/* SOS */
+.sos-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px;border-radius:14px;cursor:pointer;transition:all .15s;gap:6px;color:#fff}
+.sos-btn:hover{transform:scale(1.02)}
+.sos-btn .si{font-size:38px}.sos-btn .sl{font-size:16px;font-weight:600}.sos-btn .sd{font-size:13px;opacity:.85}
+
+/* Med history */
+.med-hist{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px}
+.med-d{text-align:center;font-size:14px;color:var(--tx3);padding:3px 0}
+.med-c{width:100%;aspect-ratio:1;border-radius:3px;background:var(--card2)}
+.med-c.ok{background:rgba(63,185,80,.2)}.med-c.late{background:rgba(210,153,34,.2)}.med-c.miss{background:rgba(248,81,73,.2)}
+
+/* Health chart */
+.hc{background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);margin-bottom:8px}
+.hc-t{font-size:14px;font-weight:600;color:var(--tx);margin-bottom:6px}
+.hc-bars{display:flex;align-items:flex-end;gap:5px;height:65px}
+.hc-bar{flex:1;border-radius:3px 3px 0 0;position:relative}
+.hc-bar .hv{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:14px;color:var(--tx3);white-space:nowrap}
+.hc-bar .hl{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:14px;color:var(--tx4)}
+
+/* ── DEVICE ── */
+.room-tabs{display:flex;gap:4px;margin-bottom:8px}
+.rtab{padding:5px 14px;border-radius:16px;font-size:14px;background:var(--card2);color:var(--tx3);cursor:pointer;transition:all .15s}
+.rtab.active{background:var(--pri);color:var(--on-accent)}
+.rct{display:none}.rct.active{display:block}
+.dev-c{background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);
+  display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s}
+.dev-c:hover{box-shadow:var(--sh)}
+.dc-ic{font-size:28px;width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dc-ic.on{background:var(--accent-soft)}.dc-ic.off{background:var(--card2)}
+.dc-nm{font-size:15px;font-weight:500;color:var(--tx)}.dc-st{font-size:13px;color:var(--tx3);margin-top:1px}
+
+/* Scene */
+.sc-c{padding:12px;border-radius:var(--r);cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;gap:12px}
+.sc-c:hover{transform:none;box-shadow:var(--sh)}
+.sc-ic{font-size:32px;width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sc-nm{font-size:16px;font-weight:600;color:var(--tx)}.sc-ds{font-size:13px;color:var(--tx3);margin-top:2px;line-height:1.5}
+
+/* Camera */
+.cam-pre{background:var(--camera-bg);border-radius:var(--r);height:160px;display:flex;align-items:center;justify-content:center;
+  color:var(--tx3);font-size:15px;margin-bottom:8px;position:relative}
+.cam-btns{position:absolute;bottom:8px;right:8px;display:flex;gap:5px}
+.photo-g{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.photo-t{aspect-ratio:1;border-radius:var(--rs);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--tx4)}
+
+/* ── Car D-Pad ── */
+.dpad-wrap{display:flex;gap:16px;align-items:flex-start}
+.dpad{width:160px;height:160px;position:relative;flex-shrink:0;margin:0 auto}
+.dpad-btn{position:absolute;width:50px;height:50px;border-radius:10px;background:var(--card);
+  border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;
+  font-size:20px;cursor:pointer;transition:all .12s;box-shadow:var(--sh);user-select:none}
+.dpad-btn:active,.dpad-btn.pressed{background:var(--pri);color:var(--on-accent);border-color:var(--pri);transform:scale(.93)}
+.dpad-up{top:0;left:50%;transform:translateX(-50%)}
+.dpad-dn{bottom:0;left:50%;transform:translateX(-50%)}
+.dpad-lt{left:0;top:50%;transform:translateY(-50%)}
+.dpad-rt{right:0;top:50%;transform:translateY(-50%)}
+.dpad-stop{top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;
+  background:var(--err);color:var(--on-danger);font-size:14px;font-weight:600;border:none}
+.dpad-stop:active{opacity:.8;transform:translate(-50%,-50%) scale(.93)}
+.spd-col{flex:1;display:flex;flex-direction:column;gap:8px}
+.spd-track{width:100%;height:8px;border-radius:4px;background:var(--bd2);position:relative;cursor:pointer}
+.spd-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--ok),var(--pri));transition:width .15s}
+.spd-thumb{position:absolute;top:-6px;width:20px;height:20px;border-radius:50%;background:var(--surface-1);
+  box-shadow:none;border:2px solid var(--pri);transition:left .15s}
+.car-stat{display:flex;gap:6px;flex-wrap:wrap}
+.car-stat-i{flex:1;min-width:70px;background:var(--card2);border-radius:var(--rs);padding:6px 8px;text-align:center}
+.car-stat-i .csv{font-size:19px;font-weight:700;color:var(--tx)}
+.car-stat-i .csl{font-size:15px;color:var(--tx3);margin-top:1px}
+
+/* ── Arm Joints ── */
+.arm-joint{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card);
+  border-radius:var(--rs);margin-bottom:4px}
+.arm-joint .aj-label{font-size:14px;color:var(--tx2);width:56px;flex-shrink:0}
+.arm-joint .aj-track{flex:1;height:6px;border-radius:3px;background:var(--bd2);position:relative;cursor:pointer}
+.arm-joint .aj-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--pri))}
+.arm-joint .aj-val{font-size:14px;color:var(--pri);font-weight:600;width:42px;text-align:right;flex-shrink:0}
+.arm-presets{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.arm-pre{padding:7px 16px;border-radius:var(--rs);background:var(--card);border:1px solid var(--bd2);
+  font-size:14px;color:var(--tx2);cursor:pointer;transition:all .12s}
+.arm-pre:active{background:var(--pri);color:var(--on-accent);border-color:var(--pri)}
+.estop-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;
+  background:rgba(248,81,73,.08);border-radius:var(--rs);margin-top:8px;cursor:pointer;
+  border:1px dashed var(--err);transition:all .15s}
+.estop-bar:active{background:var(--err);color:var(--on-danger)}
+
+/* ── SETTING ── */
+.sg{margin-bottom:12px}
+.sg-t{font-size:13px;color:var(--tx4);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+.sr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--card);border-radius:var(--rs);margin-bottom:3px}
+.sr-l{font-size:15px;color:var(--tx)}.sr-v{font-size:14px;color:var(--tx3)}
+.slider{width:100px;height:3px;border-radius:2px;background:var(--bd2);position:relative;cursor:pointer}
+.slider-f{height:100%;border-radius:2px;background:var(--pri)}
+.slider-th{position:absolute;top:-5px;width:14px;height:14px;border-radius:50%;background:var(--surface-1);box-shadow:none;border:2px solid var(--pri)}
+
+.theme-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 8px;padding:0;border:0}.theme-choice legend{width:100%;grid-column:1/-1;margin-bottom:2px;font-size:15px;color:var(--tx);font-weight:600}.theme-choice label{min-height:56px;display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--card);cursor:pointer;color:var(--tx)}.theme-choice input{width:18px;height:18px;accent-color:var(--pri);flex-shrink:0}.theme-choice span{display:grid;gap:2px}.theme-choice strong{font-size:16px}.theme-choice small{font-size:13px;color:var(--tx3);line-height:1.25}.theme-choice label:has(input:checked){border-color:var(--pri);background:var(--accent-soft)}
+.hw-i{background:var(--card2);border-radius:var(--rs);padding:8px;text-align:center}
+.hw-i .hs{font-size:20px;margin-bottom:1px}.hw-i .hn{font-size:13px;color:var(--tx3)}
+
+/* Page title */
+.pg-t{font-size:18px;font-weight:600;color:var(--tx);margin-bottom:10px;letter-spacing:.5px}
+.mb6{margin-bottom:6px}.mb8{margin-bottom:8px}.mb10{margin-bottom:10px}.mb12{margin-bottom:12px}
+.mt6{margin-top:6px}.mt8{margin-top:8px}
+.tc{text-align:center}
+.tx-ok{color:var(--ok)}.tx-warn{color:var(--warn)}.tx-err{color:var(--err)}
+
+/* ── Surface refinement ── */
+.sb-dot{animation:none}
+.card{border:1px solid var(--bd)}
+.card:hover{border-color:var(--accent-border);box-shadow:var(--sh)}
+.ni.active{text-shadow:none}
+.boot-spin{filter:none}
+.btn-p{box-shadow:none;transition:background .15s}
+.btn-p:hover{box-shadow:none}
+.ch-send{box-shadow:none}
+.dpad-btn{border:1px solid var(--bd2)}
+.dpad-btn:active,.dpad-btn.pressed{box-shadow:none}
+.hm-face{box-shadow:none}
+.sos-btn{box-shadow:var(--sh);border:1px solid var(--bd)}
+.sos-btn:hover{box-shadow:var(--sh)}
+.estop-bar{box-shadow:none}
+#bnav{box-shadow:0 -4px 14px rgba(0,0,0,.08)}
+#sbar{box-shadow:0 2px 10px rgba(0,0,0,.06)}
+
+/* ── KUNPENG DESKTOP PET ── */
+:root{--pet-size:112px;--pet-touch:120px;--pet-gutter:8px}
+.pet-sim{display:none;position:absolute;top:4px;left:4px;z-index:2;padding:3px 6px;border-radius:5px;background:var(--warn);color:var(--on-warning);font-size:13px;font-weight:700;pointer-events:none}
+.pet-sim.show{display:block}
+.hm-face{padding:0;border:0;background:transparent;appearance:none}
+.hm-face:focus-visible,.pet-button:focus-visible{outline:3px solid var(--focus-ring);outline-offset:3px}
+.pet-layer{position:absolute;top:30px;right:0;bottom:54px;left:0;z-index:80;pointer-events:none;opacity:0;transition:opacity .2s}
+.pet-layer.pet-ready{opacity:1}.pet-layer.pet-hidden{display:none}
+.pet-button{position:absolute;width:var(--pet-touch);height:var(--pet-touch);padding:0;border:0;border-radius:28px;background:transparent;cursor:grab;touch-action:none;pointer-events:auto;user-select:none;-webkit-user-select:none;transition:left .18s ease,top .18s ease;filter:drop-shadow(0 8px 14px rgba(0,0,0,.16))}
+.pet-button.dragging{cursor:grabbing;transition:none}.pet-button:hover{filter:drop-shadow(0 10px 18px rgba(0,0,0,.2))}
+.pet-canvas{display:block;width:100%;height:100%}
+#petAvatar{width:100%;height:100%;overflow:visible}
+.pet-avatar-svg{display:block;width:100%;height:100%;overflow:visible}
+.pet-avatar-svg .avatar-world{transform-box:fill-box;transform-origin:center bottom;transition:transform .24s ease-out}
+.pet-avatar-svg .avatar-head,.pet-avatar-svg .avatar-face,.pet-avatar-svg .avatar-hair,.pet-avatar-svg .avatar-arm{transform-box:fill-box;transform-origin:center;transition:transform .22s ease-out}
+.pet-avatar-svg .avatar-eye{transform-box:fill-box;transform-origin:center;transition:transform .12s ease-out}
+.pet-avatar-svg .avatar-mouth{transition:opacity .18s ease-out}
+.hm-face .pet-avatar-svg{width:72px;height:72px}
+.pet-status{position:absolute;bottom:calc(100% - 8px);z-index:1;max-width:210px;padding:8px 11px;border:1px solid var(--accent-border);border-radius:var(--rs);background:var(--pet-bubble);box-shadow:var(--sh);color:var(--tx);font-size:16px;line-height:1.4;white-space:nowrap;opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .18s,transform .18s}
+.pet-status.show{opacity:1;transform:none}.pet-button.dock-right .pet-status{right:calc(100% - 12px)}.pet-button.dock-left .pet-status{left:calc(100% - 12px)}
+@media (prefers-reduced-motion:reduce){.pet-avatar-svg *{transition:none!important}.pet-avatar-svg .avatar-world{transform:none!important}}
+html[data-surface="desktop"] #boot,html[data-surface="desktop"] #sbar,html[data-surface="desktop"] #content,html[data-surface="desktop"] #bnav{display:none}
+html[data-surface="desktop"] body,html[data-surface="desktop"] #app{background:transparent}
+html[data-surface="desktop"] .pet-layer{top:0;right:0;bottom:0;left:0;opacity:1}
+html[data-surface="desktop"] .pet-button{width:300px!important;height:390px!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%);cursor:grab;border-radius:32px}
+html[data-surface="desktop"] .pet-status{bottom:calc(100% + 6px);right:50%;transform:translate(50%,4px)}
+html[data-surface="desktop"] .pet-status.show{transform:translate(50%,0)}
+html[data-surface="desktop"] #petSimulationBadge{display:none}
+.pet-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.boot-spin i,.pg.active,.think-spin{animation:none!important}.pet-layer,.pet-button,.pet-status{transition:none}.q-btn:active{transform:none}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ========== BOOT (Page 0) ========== -->
+<div id="boot">
+  <div class="boot-in">
+    <div class="boot-spin"><i></i><i></i><i></i></div>
+    <div class="boot-txt">
+      <div class="br">小 鲲</div>
+      <div class="en">KUNPENG CORTEX</div>
+      <div class="boot-bar">
+        <div class="boot-rail"><div class="boot-fill" id="bFill"></div></div>
+        <div class="boot-lbl" id="bLbl">0%</div>
+      </div>
+      <div class="boot-st" id="bSt">正在唤醒小鲲...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STATUS BAR ========== -->
+<div id="sbar">
+  <span id="sTime">09:30</span>
+  <div class="sb-r">
+    <span><span class="sb-dot"></span>WiFi</span>
+    <span id="sOnline" style="color:var(--ok)">在线</span>
+  </div>
+</div>
+
+<!-- ========== CONTENT ========== -->
+<div id="content">
+
+  <!-- ===== Page 1: HOME ===== -->
+  <div class="pg active" id="pg-home">
+    <div style="display:flex;gap:14px;margin-bottom:12px;align-items:center">
+      <button class="hm-face" type="button" onclick="petInteract()" aria-label="与陪伴小助手互动">
+        <div id="homePetAvatar" class="pet-avatar" aria-hidden="true"></div>
+      </button>
+      <div style="flex:1">
+        <div class="hm-greet" id="greet">王大爷，早上好呀</div>
+        <div class="hm-date" id="hDate">2026年6月8日 星期日</div>
+        <div class="hm-conn">● 小鲲在线</div>
+        <div id="homeCompanionState" style="font-size:14px;color:var(--tx3);margin-top:3px">陪伴状态：等待数据</div>
+      </div>
+    </div>
+
+    <div class="g3 mb10">
+      <div class="env-c"><div class="env-v">26°</div><div class="env-l">温度</div></div>
+      <div class="env-c"><div class="env-v">60%</div><div class="env-l">湿度</div></div>
+      <div class="env-c"><div class="env-v">☀ 晴</div><div class="env-l">天气</div></div>
+    </div>
+
+    <div class="g4">
+      <div class="q-btn" onclick="nav('chat')"><div class="qi">💬</div>聊聊天</div>
+      <div class="q-btn" onclick="nav('remind')"><div class="qi">🔔</div>看提醒</div>
+      <div class="q-btn" onclick="nav('chat');wsSend('photo.take',{})"><div class="qi">📷</div>拍个照</div>
+      <div class="q-btn" onclick="nav('device')"><div class="qi">💡</div>家居控制</div>
+    </div>
+
+    <div class="g2" style="margin-top:8px">
+      <div class="q-btn" onclick="nav('device');setTimeout(()=>switchDevTab('car'),50)">
+        <div class="qi">🚗</div>小车控制
+      </div>
+      <div class="q-btn" onclick="nav('device');setTimeout(()=>switchDevTab('arm'),50)">
+        <div class="qi">🦾</div>机械臂控制
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:10px;padding:14px 16px" id="homeSummary">
+      <div class="card-t" style="font-size:17px;margin-bottom:8px">📋 今日摘要</div>
+      <div class="sum-txt" style="font-size:15px;line-height:2.2">
+        <div><span class="sum-dot" style="background:var(--ok)"></span>降压药 08:00 已服 ✓</div>
+        <div><span class="sum-dot" style="background:var(--warn)"></span>胰岛素 20:00 待注射</div>
+        <div><span class="sum-dot" style="background:var(--pri)"></span>2 条新提醒</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Page 2: CHAT ===== -->
+  <div class="pg" id="pg-chat">
+    <div class="ch-msgs" id="chMsgs">
+      <div class="bub a">王大爷早上好！今天天气不错，温度26度，适合出去走走呢。</div>
+      <div class="bub u">帮我把客厅的灯开一下</div>
+      <div class="bub a">好的，我来帮您开灯。<div class="hwc">✅ 客厅主灯已打开</div></div>
+      <div class="bub u">拍张照片看看</div>
+      <div class="bub a">好的，照片拍好了。我看到画面里是客厅，沙发上的靠垫摆得很整齐，茶几上放着您的茶杯，地面很干净呢。</div>
+      <div class="bub u">今天吃药了吗</div>
+      <div class="bub a">降压药今早8点已经吃了 ✓ 胰岛素晚上8点还有一次，到时候我会提醒您的，放心！</div>
+    </div>
+    <div class="ch-bar">
+      <button class="ch-voice" title="语音">🎙</button>
+      <input class="ch-in" id="chIn" placeholder="和小鲲说句话..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button class="ch-send" onclick="sendMsg()" title="发送">➤</button>
+    </div>
+  </div>
+
+  <!-- ===== Page 3: REMIND ===== -->
+  <div class="pg" id="pg-remind">
+    <div class="stabs">
+      <div class="stab active" onclick="switchRm(this,'today')">今日提醒</div>
+      <div class="stab" onclick="switchRm(this,'meds')">用药管理</div>
+      <div class="stab" onclick="switchRm(this,'health')">健康数据</div>
+      <div class="stab" onclick="switchRm(this,'sos')">紧急联系</div>
+      <div class="stab" onclick="switchRm(this,'history')">历史记录</div>
+    </div>
+
+    <!-- Today (dynamic, populated from server) -->
+    <div class="sp active" id="rm-today">
+      <div id="rmTodayList">
+        <div class="rm-card done"><div class="rm-t">08:00</div><div class="rm-ic">💊</div><div class="rm-bd"><div class="rm-nm">服用降压药</div><div class="rm-ds">客厅茶几抽屉 · 已完成</div></div><div class="rm-ck done">✓</div></div>
+        <div class="rm-card done"><div class="rm-t">08:00</div><div class="rm-ic">💉</div><div class="rm-bd"><div class="rm-nm">注射胰岛素（早）</div><div class="rm-ds">冰箱保鲜层 · 已完成</div></div><div class="rm-ck done">✓</div></div>
+        <div class="rm-card"><div class="rm-t">14:00</div><div class="rm-ic">🚶</div><div class="rm-bd"><div class="rm-nm">午后散步</div><div class="rm-ds">小区花园 · 建议30分钟</div></div><div class="rm-ck" onclick="toggleRm(this)"></div></div>
+        <div class="rm-card"><div class="rm-t">17:00</div><div class="rm-ic">📞</div><div class="rm-bd"><div class="rm-nm">儿子回电话</div><div class="rm-ds">约好下午通话</div></div><div class="rm-ck" onclick="toggleRm(this)"></div></div>
+        <div class="rm-card"><div class="rm-t">20:00</div><div class="rm-ic">💉</div><div class="rm-bd"><div class="rm-nm">注射胰岛素（晚）</div><div class="rm-ds">冰箱保鲜层</div></div><div class="rm-ck" onclick="toggleRm(this)"></div></div>
+      </div>
+    </div>
+
+    <!-- History (dynamic, populated from server) -->
+    <div class="sp" id="rm-history">
+      <div id="rmHistoryList">
+        <div style="text-align:center;color:var(--tx4);padding:40px 0;font-size:15px">加载中...</div>
+      </div>
+    </div>
+
+    <!-- Meds -->
+    <div class="sp" id="rm-meds">
+      <div class="card-t mb6">今日用药</div>
+      <div class="rm-card"><div class="rm-ic">💊</div><div class="rm-bd"><div class="rm-nm">降压药</div><div class="rm-ds">早 08:00 · 客厅茶几抽屉</div></div><div class="rm-ck done" onclick="ck(this)">✓</div></div>
+      <div class="rm-card"><div class="rm-ic">💉</div><div class="rm-bd"><div class="rm-nm">胰岛素（早）</div><div class="rm-ds">早 08:00 · 冰箱保鲜层</div></div><div class="rm-ck done" onclick="ck(this)">✓</div></div>
+      <div class="rm-card"><div class="rm-ic">💉</div><div class="rm-bd"><div class="rm-nm">胰岛素（晚）</div><div class="rm-ds">晚 20:00 · 冰箱保鲜层</div></div><div class="rm-ck" onclick="ck(this)"></div></div>
+      <div class="card mt8">
+        <div class="card-t">近 7 天服药记录</div>
+        <div class="med-hist">
+          <div class="med-d">一</div><div class="med-d">二</div><div class="med-d">三</div><div class="med-d">四</div><div class="med-d">五</div><div class="med-d">六</div><div class="med-d" style="color:var(--pri);font-weight:600">今</div>
+          <div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c late"></div><div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c ok"></div>
+          <div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c late"></div><div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c miss"></div><div class="med-c ok"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;font-size:15px;color:var(--tx4)">
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:rgba(63,185,80,.5);vertical-align:middle;margin-right:2px"></span>按时</span>
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:rgba(210,153,34,.5);vertical-align:middle;margin-right:2px"></span>延迟</span>
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:rgba(248,81,73,.45);vertical-align:middle;margin-right:2px"></span>漏服</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health -->
+    <div class="sp" id="rm-health">
+      <div class="hc">
+        <div class="hc-t">血压趋势（近 7 天 · mmHg）</div>
+        <div class="hc-bars">
+          <div class="hc-bar" style="height:70%;background:linear-gradient(180deg,var(--pri),var(--pri-l))"><span class="hv">138</span><span class="hl">一</span></div>
+          <div class="hc-bar" style="height:65%;background:linear-gradient(180deg,var(--pri),var(--pri-l))"><span class="hv">135</span><span class="hl">二</span></div>
+          <div class="hc-bar" style="height:55%;background:linear-gradient(180deg,var(--ok),#6ee77a)"><span class="hv">130</span><span class="hl">三</span></div>
+          <div class="hc-bar" style="height:68%;background:linear-gradient(180deg,var(--pri),var(--pri-l))"><span class="hv">136</span><span class="hl">四</span></div>
+          <div class="hc-bar" style="height:48%;background:linear-gradient(180deg,var(--ok),#6ee77a)"><span class="hv">128</span><span class="hl">五</span></div>
+          <div class="hc-bar" style="height:58%;background:linear-gradient(180deg,var(--ok),#6ee77a)"><span class="hv">132</span><span class="hl">六</span></div>
+          <div class="hc-bar" style="height:52%;background:linear-gradient(180deg,var(--ok),#6ee77a)"><span class="hv">129</span><span class="hl" style="color:var(--pri);font-weight:600">今</span></div>
+        </div>
+      </div>
+      <div class="hc">
+        <div class="hc-t">血糖趋势（近 7 天 · mmol/L）</div>
+        <div class="hc-bars">
+          <div class="hc-bar" style="height:60%;background:linear-gradient(180deg,var(--blue),#79b8ff)"><span class="hv">6.8</span><span class="hl">一</span></div>
+          <div class="hc-bar" style="height:55%;background:linear-gradient(180deg,var(--blue),#79b8ff)"><span class="hv">6.5</span><span class="hl">二</span></div>
+          <div class="hc-bar" style="height:72%;background:linear-gradient(180deg,var(--warn),#e6b84d)"><span class="hv">7.2</span><span class="hl">三</span></div>
+          <div class="hc-bar" style="height:45%;background:linear-gradient(180deg,var(--blue),#79b8ff)"><span class="hv">6.2</span><span class="hl">四</span></div>
+          <div class="hc-bar" style="height:56%;background:linear-gradient(180deg,var(--blue),#79b8ff)"><span class="hv">6.6</span><span class="hl">五</span></div>
+          <div class="hc-bar" style="height:50%;background:linear-gradient(180deg,var(--blue),#79b8ff)"><span class="hv">6.3</span><span class="hl">六</span></div>
+          <div class="hc-bar" style="height:54%;background:linear-gradient(180deg,var(--blue),#79b8ff)"><span class="hv">6.5</span><span class="hl" style="color:var(--pri);font-weight:600">今</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-t">今天感觉怎么样？</div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <div style="flex:1;padding:8px;border-radius:var(--rs);background:var(--card2);text-align:center;cursor:pointer;font-size:15px;border:1px solid transparent" onclick="reportElder('affect','positive',this)">😊 挺好的</div>
+          <div style="flex:1;padding:8px;border-radius:var(--rs);background:var(--card2);text-align:center;cursor:pointer;font-size:15px;border:1px solid transparent" onclick="reportElder('affect','neutral',this)">😐 一般般</div>
+          <div style="flex:1;padding:8px;border-radius:var(--rs);background:var(--card2);text-align:center;cursor:pointer;font-size:15px;border:1px solid transparent" onclick="reportElder('affect','low',this)">😔 不太好</div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn btn-s" style="flex:1;padding:8px" onclick="reportElder('meal','started')">🍚 开始吃饭</button>
+          <button class="btn btn-s" style="flex:1;padding:8px" onclick="reportElder('meal','completed')">✓ 已吃完</button>
+        </div>
+        <div id="companionState" style="margin-top:8px;font-size:13px;color:var(--tx3);line-height:1.45">状态来源：等待陪伴服务</div>
+      </div>
+    </div>
+
+    <!-- SOS -->
+    <div class="sp" id="rm-sos">
+      <div class="g3" style="margin-top:12px">
+        <div class="sos-btn" style="background:linear-gradient(135deg,#F85149,#da3633)" onclick="wsSend('sos.call',{type:'son'})"><div class="si">📞</div><div class="sl">呼叫儿子</div><div class="sd">138****1234</div></div>
+        <div class="sos-btn" style="background:linear-gradient(135deg,#D29922,#e3b341)" onclick="wsSend('sos.call',{type:'120'})"><div class="si">🚑</div><div class="sl">急救 120</div><div class="sd">紧急医疗救援</div></div>
+        <div class="sos-btn" style="background:linear-gradient(135deg,var(--pri),#00A8CC)" onclick="wsSend('sos.call',{type:'kunpeng'})"><div class="si">🐟</div><div class="sl">小鲲紧急</div><div class="sd">摔倒检测+自动报警</div></div>
+      </div>
+      <div class="card mt8 tc" style="color:var(--tx3);font-size:14px;line-height:1.8">遇到紧急情况请保持冷静<br>小鲲会一直陪着您</div>
+    </div>
+  </div>
+
+  <!-- ===== Page 4: DEVICE ===== -->
+  <div class="pg" id="pg-device">
+    <div class="stabs">
+      <div class="stab active" onclick="switchDevTab('dev')">设备控制</div>
+      <div class="stab" onclick="switchDevTab('car')">小车</div>
+      <div class="stab" onclick="switchDevTab('arm')">机械臂</div>
+      <div class="stab" onclick="switchDevTab('cam')">摄像头</div>
+      <div class="stab" onclick="switchDevTab('scene')">情景模式</div>
+    </div>
+
+    <!-- Devices -->
+    <div class="sp active" id="dv-dev">
+      <div class="room-tabs mb8">
+        <div class="rtab active" onclick="switchRoom(this,'living')">客厅</div>
+        <div class="rtab" onclick="switchRoom(this,'bed')">卧室</div>
+        <div class="rtab" onclick="switchRoom(this,'kit')">厨房</div>
+      </div>
+      <div class="rct active" id="rm-living">
+        <div class="g2">
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">💡</div><div><div class="dc-nm">主灯</div><div class="dc-st tx-ok">已开启 · 70%</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic off">🕯</div><div><div class="dc-nm">氛围灯</div><div class="dc-st">已关闭</div></div><div class="tgl" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">📷</div><div><div class="dc-nm">摄像头</div><div class="dc-st tx-ok">在线</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic off">🤖</div><div><div class="dc-nm">机械臂</div><div class="dc-st">待机中</div></div><div class="tgl" style="margin-left:auto"></div></div>
+        </div>
+      </div>
+      <div class="rct" id="rm-bed">
+        <div class="g2">
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic off">💡</div><div><div class="dc-nm">卧室灯</div><div class="dc-st">已关闭</div></div><div class="tgl" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic off">🌙</div><div><div class="dc-nm">夜灯</div><div class="dc-st">已关闭</div></div><div class="tgl" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">🌡</div><div><div class="dc-nm">床头传感器</div><div class="dc-st tx-ok">正常 · 25.5°</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+        </div>
+      </div>
+      <div class="rct" id="rm-kit">
+        <div class="g2">
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">🔥</div><div><div class="dc-nm">燃气传感器</div><div class="dc-st tx-ok">正常</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">🌡</div><div><div class="dc-nm">温湿度传感器</div><div class="dc-st tx-ok">28° · 55%</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Camera -->
+    <div class="sp" id="dv-cam">
+      <div class="cam-pre">
+        <span>📷 实时画面预览</span>
+        <div class="cam-btns">
+          <button class="btn btn-p" style="padding:6px 14px;font-size:13px" onclick="wsSend('photo.take',{})">拍照</button>
+          <button class="btn btn-o" style="padding:6px 14px;font-size:13px;color:var(--blue);border-color:rgba(88,166,255,.3)" onclick="analyzePhoto()">让小鲲看看</button>
+        </div>
+      </div>
+      <div class="card-t mb6">最近照片</div>
+      <div class="photo-g">
+        <div class="photo-t">📸</div><div class="photo-t">📸</div><div class="photo-t">📸</div>
+        <div class="photo-t" style="border:2px dashed var(--bd2);background:transparent;font-size:19px">+</div>
+      </div>
+    </div>
+
+    <!-- Car / Chassis Control -->
+    <div class="sp" id="dv-car">
+      <div class="card mb8">
+        <div class="card-t mb6">移动控制 <span id="carKbHint" style="font-size:15px;color:var(--tx4);float:right">键盘: WASD/方向键 空格停</span></div>
+        <div class="dpad-wrap">
+          <div class="dpad">
+            <div class="dpad-btn dpad-up" data-dir="forward" onmousedown="carMove('forward')" onmouseup="carStop()" onmouseleave="if(carMoving)carStop()" ontouchstart="carMove('forward')" ontouchend="carStop()">▲</div>
+            <div class="dpad-btn dpad-lt" data-dir="left" onmousedown="carMove('left')" onmouseup="carStop()" onmouseleave="if(carMoving)carStop()" ontouchstart="carMove('left')" ontouchend="carStop()">◀</div>
+            <div class="dpad-btn dpad-stop" onclick="carStop()">STOP</div>
+            <div class="dpad-btn dpad-rt" data-dir="right" onmousedown="carMove('right')" onmouseup="carStop()" onmouseleave="if(carMoving)carStop()" ontouchstart="carMove('right')" ontouchend="carStop()">▶</div>
+            <div class="dpad-btn dpad-dn" data-dir="backward" onmousedown="carMove('backward')" onmouseup="carStop()" onmouseleave="if(carMoving)carStop()" ontouchstart="carMove('backward')" ontouchend="carStop()">▼</div>
+          </div>
+          <div class="spd-col">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:14px;color:var(--tx2)">速度</span>
+              <span id="carSpdVal" style="font-size:17px;font-weight:700;color:var(--pri)">50%</span>
+            </div>
+            <div class="spd-track" id="carSpdTrack" onclick="setCarSpeed(event)">
+              <div class="spd-fill" id="carSpdFill" style="width:50%"></div>
+              <div class="spd-thumb" id="carSpdThumb" style="left:calc(50% - 10px)"></div>
+            </div>
+            <div style="display:flex;gap:4px;margin-top:4px">
+              <div class="arm-pre" onclick="setCarSpeedVal(25)" style="flex:1;text-align:center">慢</div>
+              <div class="arm-pre" onclick="setCarSpeedVal(50)" style="flex:1;text-align:center">中</div>
+              <div class="arm-pre" onclick="setCarSpeedVal(80)" style="flex:1;text-align:center">快</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card mb8">
+        <div class="card-t mb6">状态</div>
+        <div class="car-stat">
+          <div class="car-stat-i"><div class="csv" id="carDir">—</div><div class="csl">方向</div></div>
+          <div class="car-stat-i"><div class="csv" id="carSpd">0</div><div class="csl">速度</div></div>
+          <div class="car-stat-i"><div class="csv" id="carL">0</div><div class="csl">左轮</div></div>
+          <div class="car-stat-i"><div class="csv" id="carR">0</div><div class="csl">右轮</div></div>
+        </div>
+      </div>
+      <div id="carEstopArea">
+        <div class="estop-bar" onclick="carEstop()">
+          <span style="font-size:20px">🛑</span>
+          <span style="font-size:15px;font-weight:600;color:var(--err)">紧急停止</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Robotic Arm Control -->
+    <div class="sp" id="dv-arm">
+      <div class="card mb8">
+        <div class="card-t mb6">关节控制（6 自由度）</div>
+        <div id="armJoints"></div>
+      </div>
+      <div class="card mb8">
+        <div class="card-t mb6">快捷动作</div>
+        <div class="arm-presets">
+          <div class="arm-pre" onclick="armPreset('home')">🏠 归位</div>
+          <div class="arm-pre" onclick="armPreset('grip')">✊ 夹取</div>
+          <div class="arm-pre" onclick="armPreset('release')">🖐 释放</div>
+          <div class="arm-pre" onclick="armPreset('wave')">👋 挥手</div>
+          <div class="arm-pre" onclick="armPreset('drink')">🥤 递水</div>
+        </div>
+      </div>
+      <div class="card mb8">
+        <div class="card-t mb6">状态</div>
+        <div class="car-stat" id="armStatus">
+          <div class="car-stat-i"><div class="csv" id="armStTxt">待机</div><div class="csl">状态</div></div>
+          <div class="car-stat-i"><div class="csv" id="armGrip">开</div><div class="csl">夹爪</div></div>
+        </div>
+      </div>
+      <div id="armEstopArea">
+        <div class="estop-bar" onclick="armEstop()">
+          <span style="font-size:22px">🛑</span>
+          <span style="font-size:15px;font-weight:600;color:var(--err)">紧急停止</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene -->
+    <div class="sp" id="dv-scene">
+      <div class="sc-c card mb8" style="border-left:3px solid var(--pri)" onclick="wsSend('scene.execute',{scene:'起床模式'})"><div class="sc-ic" style="background:var(--accent-soft)">🌅</div><div><div class="sc-nm">起床模式</div><div class="sc-ds">卧室灯从10%渐亮到70%，播放轻音乐</div></div></div>
+      <div class="sc-c card mb8" style="border-left:3px solid var(--blue)" onclick="wsSend('scene.execute',{scene:'睡觉模式'})"><div class="sc-ic" style="background:rgba(88,166,255,.1)">🌙</div><div><div class="sc-nm">睡觉模式</div><div class="sc-ds">关闭所有灯，卧室留夜灯10%</div></div></div>
+      <div class="sc-c card mb8" style="border-left:3px solid var(--ok)" onclick="wsSend('scene.execute',{scene:'出门模式'})"><div class="sc-ic" style="background:rgba(63,185,80,.1)">🚪</div><div><div class="sc-nm">出门模式</div><div class="sc-ds">关闭所有灯和设备，开启摄像头监控</div></div></div>
+      <div class="sc-c card" style="border-left:3px solid var(--warn)" onclick="wsSend('scene.execute',{scene:'回家模式'})"><div class="sc-ic" style="background:rgba(210,153,34,.1)">🏠</div><div><div class="sc-nm">回家模式</div><div class="sc-ds">打开客厅主灯，关闭摄像头监控</div></div></div>
+    </div>
+  </div>
+
+  <!-- ===== Page 5: SETTING ===== -->
+  <div class="pg" id="pg-setting">
+    <div class="stabs">
+      <div class="stab active" onclick="switchSt(this,'personal')">个人设置</div>
+      <div class="stab" onclick="switchSt(this,'device')">设备设置</div>
+      <div class="stab" onclick="switchSt(this,'about')">关于系统</div>
+    </div>
+
+    <!-- Personal -->
+    <div class="sp active" id="st-personal">
+      <div class="sg"><div class="sg-t">个人信息</div>
+        <div class="sr"><span class="sr-l">姓名</span><span class="sr-v">王大爷</span></div>
+        <div class="sr"><span class="sr-l">年龄</span><span class="sr-v">75 岁</span></div>
+        <div class="sr"><span class="sr-l">居住状况</span><span class="sr-v">独居</span></div>
+      </div>
+      <div class="sg"><div class="sg-t">紧急联系人</div>
+        <div class="sr"><span class="sr-l">儿子</span><span class="sr-v">138****1234</span></div>
+      </div>
+      <div class="sg"><div class="sg-t">用药时间</div>
+        <div class="sr"><span class="sr-l">降压药</span><span class="sr-v">每天 08:00</span></div>
+        <div class="sr"><span class="sr-l">胰岛素（早）</span><span class="sr-v">每天 08:00</span></div>
+        <div class="sr"><span class="sr-l">胰岛素（晚）</span><span class="sr-v">每天 20:00</span></div>
+      </div>
+      <div class="card tc mt8" style="font-size:14px;color:var(--tx3)"><div style="font-size:28px;margin-bottom:3px">📱</div>家属可扫描二维码远程修改设置</div>
+    </div>
+
+    <!-- Device -->
+    <div class="sp" id="st-device">
+      <div class="sg"><div class="sg-t">声音</div>
+        <div class="sr"><span class="sr-l">音量</span><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--tx4)">🔈</span><div class="slider"><div class="slider-f" style="width:70%"></div><div class="slider-th" style="left:calc(70% - 7px)"></div></div><span style="font-size:13px">70%</span></div></div>
+        <div class="sr"><span class="sr-l">语音语速</span><span class="sr-v">慢速</span></div>
+      </div>
+      <div class="sg"><div class="sg-t">显示</div>
+        <fieldset class="theme-choice" id="themeSelector">
+          <legend>界面风格</legend>
+          <label><input type="radio" name="hmi-theme" value="premium"> <span><strong>精致质感</strong><small>深色石墨，边界清晰</small></span></label>
+          <label><input type="radio" name="hmi-theme" value="homey"> <span><strong>温暖居家</strong><small>暖色浅底，柔和舒适</small></span></label>
+        </fieldset>
+        <div class="sr"><span class="sr-l">屏幕亮度</span><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--tx4)">🔅</span><div class="slider"><div class="slider-f" style="width:60%"></div><div class="slider-th" style="left:calc(60% - 7px)"></div></div><span style="font-size:13px">60%</span></div></div>
+      </div>
+      <div class="sg"><div class="sg-t">网络</div>
+        <div class="sr"><span class="sr-l">WiFi</span><span class="sr-v tx-ok">已连接 · 信号良好</span></div>
+        <div class="sr"><span class="sr-l">方言适配</span><div class="tgl" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="sp" id="st-about">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="width:50px;height:50px;border-radius:50%;background:var(--bg2);border:2px solid var(--pri-l);display:flex;align-items:center;justify-content:center;font-size:26px">🐟</div>
+        <div><div style="font-size:19px;font-weight:600;letter-spacing:2px">小 鲲</div><div style="font-size:13px;color:var(--tx3);letter-spacing:1px">KUNPENG CORTEX v2.0</div></div>
+      </div>
+      <div class="sg"><div class="sg-t">系统信息</div>
+        <div class="sr"><span class="sr-l">设备</span><span class="sr-v">OrangePi Kunpeng Pro</span></div>
+        <div class="sr"><span class="sr-l">芯片</span><span class="sr-v">RK3588 · 8核 ARM64</span></div>
+        <div class="sr"><span class="sr-l">系统</span><span class="sr-v">openEuler 22.03</span></div>
+        <div class="sr"><span class="sr-l">内存</span><span class="sr-v">16 GB</span></div>
+        <div class="sr"><span class="sr-l">运行时长</span><span class="sr-v">3 天 12 小时</span></div>
+      </div>
+      <div class="card-t mb6 mt8">硬件状态</div>
+      <div class="hw-g mb8">
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">摄像头</div></div>
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">GPIO</div></div>
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">I2C</div></div>
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">UART</div></div>
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">SPI</div></div>
+        <div class="hw-i"><div class="hs">❌</div><div class="hn">NPU 待驱动</div></div>
+      </div>
+      <div class="sg"><div class="sg-t">能力</div>
+        <div class="sr"><span class="sr-l">已加载 Skill</span><span class="sr-v">3 个</span></div>
+        <div class="sr"><span class="sr-l">记忆条目</span><span class="sr-v">12 条</span></div>
+        <div class="sr"><span class="sr-l">AI 引擎</span><span class="sr-v">Kimi k2</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- ========== FLOATING KUNPENG PET ========== -->
+<div id="petLayer" class="pet-layer" aria-hidden="true">
+  <button id="petButton" class="pet-button dock-right" type="button" aria-label="陪伴小助手，点击互动，可拖动位置">
+    <span id="petStatus" class="pet-status"></span>
+    <span id="petSimulationBadge" class="pet-sim" aria-hidden="true">模拟</span>
+    <div id="petAvatar" class="pet-avatar" aria-hidden="true"></div>
+  </button>
+  <span id="petLive" class="pet-sr" aria-live="polite"></span>
+</div>
+
+<!-- ========== BOTTOM NAV ========== -->
+<div id="bnav">
+  <div class="ni active" onclick="nav('home')"><span class="nic">🏠</span><span>首页</span></div>
+  <div class="ni" onclick="nav('chat')"><span class="nic">💬</span><span>会话</span></div>
+  <div class="ni" onclick="nav('remind')"><span class="nic">🔔</span><span>提醒</span></div>
+  <div class="ni" onclick="nav('device')"><span class="nic">🏡</span><span>家居</span></div>
+  <div class="ni" onclick="nav('setting')"><span class="nic">⚙</span><span>设置</span></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+/* ── Theme ── */
+const THEME_STORAGE_KEY = 'kunpeng.hmi.theme.v1';
+function normalizeTheme(value) { return value === 'homey' ? 'homey' : 'premium'; }
+function readStoredTheme() {
+  try { return normalizeTheme(localStorage.getItem(THEME_STORAGE_KEY)); } catch (_) { return 'premium'; }
+}
+function syncThemeSelector(theme) {
+  document.querySelectorAll('input[name="hmi-theme"]').forEach(input => { input.checked = input.value === theme; });
+}
+function refreshPetPalette() {
+  if (!pet || !pet.ready) return;
+  const style = getComputedStyle(document.documentElement);
+  pet.palette = {
+    shell: style.getPropertyValue('--pet-shell').trim(), shellDark: style.getPropertyValue('--pet-shell-dark').trim(),
+    limb: style.getPropertyValue('--pet-limb').trim(), face: style.getPropertyValue('--pet-face').trim(),
+    accent: style.getPropertyValue('--pet-accent').trim(), caring: style.getPropertyValue('--pet-caring').trim(),
+    offline: style.getPropertyValue('--pet-offline').trim(), warning: style.getPropertyValue('--warn').trim()
+  };
+  pet.avatarRefs?.forEach(ref => {
+    ref.svg.style.setProperty('--avatar-accent', pet.palette.accent || '#5fc1d6');
+    ref.svg.style.setProperty('--avatar-caring', pet.palette.caring || '#77b8d1');
+  });
+}
+function applyTheme(theme, persist = true) {
+  const selected = normalizeTheme(theme);
+  document.documentElement.dataset.theme = selected;
+  if (persist) { try { localStorage.setItem(THEME_STORAGE_KEY, selected); } catch (_) {} }
+  syncThemeSelector(selected);
+  refreshPetPalette();
+  if (pet && pet.ready) petRequestRender();
+}
+function initThemeSelector() {
+  applyTheme(readStoredTheme(), false);
+  document.querySelectorAll('input[name="hmi-theme"]').forEach(input => input.addEventListener('change', () => applyTheme(input.value)));
+}
+
+/* ── WebSocket ── */
+let ws = null;
+let wsConnected = false;
+let chatHistoryLoaded = false;
+const isDesktopSurface = document.documentElement.dataset.surface === 'desktop';
+const companionCursor = {streamId: null, sequence: 0, revision: 0};
+const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+
+function connectWS() {
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => {
+    wsConnected = true;
+    document.getElementById('sOnline').textContent = '在线';
+    document.getElementById('sOnline').style.color = 'var(--ok)';
+    // Request initial data
+    if (!isDesktopSurface) {
+      wsSend('system.info', {});
+      wsSend('reminders.get', {});
+      wsSend('chat.history', {});
+    }
+    wsSend('companion.snapshot.get', {});
+    petSetStable('idle', '陪伴小助手在线', 1800);
+  };
+  ws.onclose = () => {
+    wsConnected = false;
+    hideThinking();
+    petSetStable('offline', '连接中…', 0);
+    document.getElementById('sOnline').textContent = '离线';
+    document.getElementById('sOnline').style.color = 'var(--err)';
+    setTimeout(connectWS, 3000); // auto-reconnect
+  };
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      console.log('[WS recv]', msg.action, msg.data);
+      handleServerMsg(msg);
+    } catch(err) { console.error('WS parse error:', err); }
+  };
+  ws.onerror = (err) => {
+    console.error('[WS error]', err);
+    petSetStable('offline', '连接中…', 0);
+  };
+}
+
+function wsSend(action, data) {
+  if (ws && wsConnected) {
+    ws.send(JSON.stringify({action, data}));
+  }
+}
+
+function handleServerMsg(msg) {
+  const {action, data, meta} = msg;
+  if (meta && action.startsWith('companion.')) {
+    if (companionCursor.streamId !== meta.stream_id) {
+      companionCursor.streamId = meta.stream_id;
+      companionCursor.sequence = 0;
+      companionCursor.revision = 0;
+    }
+    if (Number.isFinite(meta.sequence) && meta.sequence <= companionCursor.sequence) return;
+    companionCursor.sequence = Number.isFinite(meta.sequence) ? meta.sequence : companionCursor.sequence;
+    if (Number.isFinite(meta.state_revision) && meta.state_revision < companionCursor.revision) return;
+    if (Number.isFinite(meta.state_revision)) companionCursor.revision = meta.state_revision;
+  }
+  switch(action) {
+    case 'companion.snapshot':
+      applyCompanionSnapshot(data);
+      break;
+    case 'companion.directive.changed':
+      applyCompanionDirective(data);
+      petProactive.notifyInteraction();
+      break;
+    case 'elder.state.changed':
+      updateElderState(data);
+      break;
+    case 'simulation.started':
+      petSay('正在演示模拟状态', 1600);
+      break;
+    case 'chat.reply':
+      hideThinking();
+      petReact('happy', '完成啦');
+      console.log('[chat.reply]', data);
+      // Guard against empty text
+      const replyText = data.text || data.message || '(小鲲没有说话，可能出了点问题)';
+      appendChatBubble(replyText, 'a', data.hw_result);
+      // Show notification if reminders were auto-added
+      if (data.added_reminders && data.added_reminders.length > 0) {
+        data.added_reminders.forEach(r => {
+          const msg = `📌 已添加到提醒：${r.time || '待定'} - ${r.title}`;
+          appendChatBubble(msg, 'a');
+        });
+      }
+      break;
+    case 'chat.history':
+      if (!chatHistoryLoaded) {
+        chatHistoryLoaded = true;
+        const msgs = document.getElementById('chMsgs');
+        // Clear static demo bubbles
+        msgs.innerHTML = '';
+        const history = data.messages || [];
+        if (history.length === 0) {
+          // Show a welcome message if no history
+          appendChatBubble('您好呀！我是小鲲，有什么可以帮您的吗？', 'a');
+        } else {
+          history.forEach(item => {
+            const role = (item.role === 'user') ? 'u' : 'a';
+            appendChatBubble(item.text || '', role);
+          });
+          console.log('[chat.history] Loaded', history.length, 'messages');
+        }
+      }
+      break;
+    case 'chat.cleared':
+      chatHistoryLoaded = true;
+      document.getElementById('chMsgs').innerHTML = '';
+      appendChatBubble('聊天记录已清空', 'a');
+      break;
+    case 'device.state':
+      // Device state updated from server - handled by toggle function
+      break;
+    case 'photo.result':
+      if (data.success) {
+        const photoPath = data.path || '';
+        const filename = photoPath.split('/').pop();
+        const imgUrl = filename ? `/photo/${filename}` : '';
+        let html = data.message || '照片拍好了！';
+        if (imgUrl) {
+          html += `<br><img src="${imgUrl}" style="max-width:280px;border-radius:8px;margin-top:8px;cursor:pointer" onclick="window.open(this.src,'_blank')">`;
+        }
+        appendChatBubble(html, 'a');
+        petReact('happy', '照片拍好啦');
+      } else {
+        appendChatBubble(data.message || '拍照失败', 'a');
+        petReact('worried', '出了点问题');
+      }
+      break;
+    case 'scene.result':
+      appendChatBubble(data.message || `${data.scene}已启动`, 'a');
+      petReact('happy', '场景已启动');
+      break;
+    case 'reminders.list':
+      renderReminders(data.items || []);
+      break;
+    case 'reminders.history':
+      renderHistory(data.history || []);
+      break;
+    case 'reminders.added':
+      if (data.success) {
+        appendChatBubble(`📌 已添加提醒：${data.item.time || '待定'} - ${data.item.title}`, 'a');
+        petReact('happy', '提醒记住啦');
+      }
+      break;
+    case 'reminders.toggled':
+      // UI already updated optimistically
+      break;
+    case 'status.push':
+      if (data.temp !== undefined) {
+        updateEnvData(data);
+      }
+      break;
+    case 'system.info':
+      // Update about page
+      break;
+    case 'sos.result':
+      appendChatBubble(data.message || '紧急模式已启动', 'a');
+      break;
+    case 'car.status':
+      if (data.direction) document.getElementById('carDir').textContent = data.direction;
+      if (data.speed !== undefined) document.getElementById('carSpd').textContent = data.speed;
+      if (data.left !== undefined) document.getElementById('carL').textContent = data.left;
+      if (data.right !== undefined) document.getElementById('carR').textContent = data.right;
+      break;
+    case 'arm.status':
+      if (data.state) document.getElementById('armStTxt').textContent = data.state;
+      if (data.gripper !== undefined) document.getElementById('armGrip').textContent = data.gripper === 'closed' ? '夹紧' : data.gripper === 'open' ? '张开' : data.gripper;
+      if (data.angles) {
+        ARM_JOINTS.forEach(j => {
+          if (data.angles[j.id] !== undefined) {
+            j.val = data.angles[j.id];
+            const pct = ((j.val - j.min) / (j.max - j.min)) * 100;
+            const fill = document.getElementById('af-' + j.id);
+            const val = document.getElementById('av-' + j.id);
+            if (fill) fill.style.width = pct + '%';
+            if (val) val.textContent = j.val + '°';
+          }
+        });
+      }
+      break;
+    case 'emergency.result':
+      if (data.reset) {
+        carEstopActive = false;
+        armEstopActive = false;
+        petSetEmergency(false);
+        petReact('happy', '已恢复正常');
+        hideEstopUI('car');
+        hideEstopUI('arm');
+        document.getElementById('carDir').textContent = '—';
+        document.getElementById('armStTxt').textContent = '待机';
+        appendChatBubble(data.message || '✅ 紧急停止已解除', 'a');
+      } else {
+        petSetEmergency(true);
+        showEstopUI('car');
+        showEstopUI('arm');
+        appendChatBubble(data.message || '🛑 紧急停止已执行', 'a');
+      }
+      break;
+    case 'error':
+      hideThinking();
+      petReact('worried', '出了点问题');
+      appendChatBubble('⚠ ' + (data.message || '出了点问题，请再试一次'), 'a');
+      break;
+  }
+}
+
+function applyCompanionSnapshot(data) {
+  if (data && data.companion_directive) applyCompanionDirective(data.companion_directive, true);
+  if (data && data.elder_state) updateElderState(data.elder_state, Boolean(data.simulation && data.simulation.active));
+}
+function applyCompanionDirective(data, fromSnapshot = false) {
+  if (!data) return;
+  const modeMap = {warm:'warm', attentive:'attentive', listening:'attentive', thinking:'thinking', caring:'caring', encouraging:'warm', celebrating:'happy', quiet_presence:'quiet', uncertain:'uncertain', offline:'offline', neutral:'idle'};
+  petSetStable(modeMap[data.expression] || 'idle', data.message || '', fromSnapshot ? 0 : 2400);
+  pet.pose = ['idle', 'quiet_presence', 'listening', 'gentle_wave'].includes(data.pose) ? data.pose : 'idle';
+  pet.motionLevel = ['none', 'low', 'medium'].includes(data.motion_level) ? data.motion_level : 'low';
+  pet.directivePriority = data.priority || 'idle';
+  pet.poseEnteredAt = performance.now();
+  petRequestRender();
+}
+function formatSourceMode(sourceMode) {
+  return {manual:'手动确认', simulated:'模拟数据', real:'设备采集', derived:'系统推断'}[sourceMode] || '暂无可靠来源';
+}
+function formatStateDimension(name, dimension) {
+  const labelMap = {positive:'不错', neutral:'一般', low:'不太好', in_progress:'正在吃饭', completed:'已吃完', unknown:'未知'};
+  const label = labelMap[dimension.label] || dimension.label || '未知';
+  return `${name}：${label}\n来源：${formatSourceMode(dimension.source_mode)}`;
+}
+function updateSimulationBadge(dims, explicitSimulation = false) {
+  const simulated = explicitSimulation || Object.values(dims || {}).some(dimension => dimension && dimension.source_mode === 'simulated');
+  const badge = document.getElementById('petSimulationBadge');
+  if (badge) badge.classList.toggle('show', simulated);
+}
+function updateElderState(data, explicitSimulation = false) {
+  const dims = data && data.dimensions;
+  if (!dims) return;
+  pet.elderState = dims;
+  updateSimulationBadge(dims, explicitSimulation || Boolean(data.simulation_present));
+  const summary = document.getElementById('companionState');
+  const affect = dims.affect || {}, meal = dims.meal || {};
+  const formatted = `${formatStateDimension('心情', affect)}\n${formatStateDimension('用餐', meal)}`;
+  if (summary) summary.textContent = formatted;
+  const homeSummary = document.getElementById('homeCompanionState');
+  if (homeSummary) homeSummary.textContent = `陪伴状态：${formatSourceMode(affect.source_mode)} / ${formatSourceMode(meal.source_mode)}`;
+}
+
+function reportElder(kind, value, el) {
+  if (el) el.style.borderColor = value === 'low' ? 'var(--warn)' : 'var(--ok)';
+  wsSend('elder.report.submit', {kind, value});
+}
+
+function runCompanionScenario(scenario) {
+  wsSend('simulation.start', {scenario});
+}
+
+function updateEnvData(data) {
+  const envVals = document.querySelectorAll('.env-v');
+  if (envVals.length >= 3) {
+    if (data.temp !== undefined) envVals[0].textContent = data.temp + '°';
+    if (data.humidity !== undefined) envVals[1].textContent = data.humidity + '%';
+    if (data.weather !== undefined) envVals[2].textContent = data.weather;
+  }
+}
+
+function appendChatBubble(text, type, hwResult) {
+  const msgs = document.getElementById('chMsgs');
+  const div = document.createElement('div');
+  div.className = 'bub ' + type;
+  // Use innerHTML if text contains HTML tags (e.g., images), otherwise use textContent
+  const hasHtml = /<[a-z][\s\S]*>/i.test(text);
+  if (hwResult) {
+    div.innerHTML = text + `<div class="hwc">✅ ${hwResult}</div>`;
+  } else if (hasHtml) {
+    div.innerHTML = text;
+  } else {
+    div.textContent = text;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+/* ── KUNPENG DESKTOP PET ── */
+const pet = {
+  mode: 'idle', stableMode: 'idle', token: 0, frame: null, avatarFrame: null, ready: false,
+  reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  dock: 'right', yRatio: .74, dragging: false, moved: false, pointerId: null,
+  startX: 0, startY: 0, originX: 0, originY: 0, hiddenForSafety: false,
+  contextHidden: false, emergency: false, activePage: 'home', deviceTab: 'dev',
+  statusTimer: null, startedAt: performance.now(), pose: 'idle', motionLevel: 'low',
+  poseEnteredAt: performance.now(), directivePriority: 'idle', avatarRefs: [], canvases: []
+};
+const petMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+const PET_AVATAR_SVG = `<svg class="pet-avatar-svg" viewBox="0 0 240 300" role="img" aria-label="小鲲陪伴角色">
+  <defs>
+    <linearGradient id="petHair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4a3a"/><stop offset="1" stop-color="#3a2929"/></linearGradient>
+    <linearGradient id="petClothes" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#78d0d4"/><stop offset="1" stop-color="#257f91"/></linearGradient>
+    <linearGradient id="petSkin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1e5"/><stop offset="1" stop-color="#efc5b0"/></linearGradient>
+    <filter id="petShadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#1b2f3f" flood-opacity=".22"/></filter>
+  </defs>
+  <g class="avatar-world">
+    <ellipse class="avatar-shadow" cx="120" cy="279" rx="65" ry="10" fill="#173342" opacity=".2"/>
+    <g class="avatar-body" filter="url(#petShadow)">
+      <path class="avatar-clothes" d="M65 286c3-49 18-77 55-82 37 5 52 33 55 82z" fill="url(#petClothes)"/>
+      <path d="M91 207c7 20 17 29 29 29s22-9 29-29l-11-7h-36z" fill="#f8fbf7" opacity=".9"/>
+      <path d="M120 222l-13 17 13 9 13-9z" fill="#e8ac70" opacity=".9"/>
+      <path d="M76 260c21-14 67-14 88 0" fill="none" stroke="#a7e3df" stroke-width="4" opacity=".45"/>
+    </g>
+    <g class="avatar-arm avatar-arm-left"><path d="M72 219c-18 17-24 36-13 53" fill="none" stroke="#efc5b0" stroke-width="16" stroke-linecap="round"/><circle cx="59" cy="274" r="10" fill="url(#petSkin)"/></g>
+    <g class="avatar-arm avatar-arm-right"><path d="M168 219c18 17 24 36 13 53" fill="none" stroke="#efc5b0" stroke-width="16" stroke-linecap="round"/><circle cx="181" cy="274" r="10" fill="url(#petSkin)"/></g>
+    <path class="avatar-neck" d="M103 194v25c7 8 27 8 34 0v-25z" fill="url(#petSkin)"/>
+    <g class="avatar-head" filter="url(#petShadow)">
+      <ellipse cx="120" cy="123" rx="67" ry="76" fill="url(#petSkin)"/>
+      <ellipse cx="55" cy="139" rx="11" ry="18" fill="#f2cdbd"/><ellipse cx="185" cy="139" rx="11" ry="18" fill="#f2cdbd"/>
+      <path class="avatar-hair" d="M55 126c-6-62 24-100 68-100 46 0 70 40 62 104-15-13-25-28-29-45-21 22-53 32-98 29z" fill="url(#petHair)"/>
+      <path d="M72 92c18-25 43-34 78-25" fill="none" stroke="#9a735f" stroke-width="6" stroke-linecap="round" opacity=".6"/>
+      <path d="M74 75l-15 37 25-17zM96 57l-3 49 22-39zM127 51l12 52 12-48zM158 61l24 39-7-47z" fill="#5a3c34"/>
+      <circle cx="168" cy="55" r="10" fill="#f1b55f"/><circle cx="168" cy="55" r="5" fill="#fff5d8"/>
+    </g>
+    <g class="avatar-face">
+      <g class="avatar-eye avatar-eye-left"><ellipse cx="91" cy="132" rx="14" ry="18" fill="#fff"/><ellipse cx="94" cy="135" rx="7" ry="11" fill="#3a2929"/><circle cx="97" cy="130" r="3" fill="#fff"/></g>
+      <g class="avatar-eye avatar-eye-right"><ellipse cx="149" cy="132" rx="14" ry="18" fill="#fff"/><ellipse cx="146" cy="135" rx="7" ry="11" fill="#3a2929"/><circle cx="149" cy="130" r="3" fill="#fff"/></g>
+      <path class="avatar-brow avatar-brow-left" d="M78 107q13-9 26 0" fill="none" stroke="#51352e" stroke-width="5" stroke-linecap="round"/>
+      <path class="avatar-brow avatar-brow-right" d="M136 107q13-9 26 0" fill="none" stroke="#51352e" stroke-width="5" stroke-linecap="round"/>
+      <ellipse cx="76" cy="158" rx="13" ry="6" fill="#e98f91" opacity=".28"/><ellipse cx="164" cy="158" rx="13" ry="6" fill="#e98f91" opacity=".28"/>
+      <path class="avatar-mouth avatar-mouth-smile" d="M106 166q14 14 28 0" fill="none" stroke="#bd625e" stroke-width="5" stroke-linecap="round"/>
+      <path class="avatar-mouth avatar-mouth-worried" d="M107 175q13-12 26 0" fill="none" stroke="#bd625e" stroke-width="5" stroke-linecap="round" opacity="0"/>
+    </g>
+  </g>
+</svg>`;
+
+function petInit() {
+  pet.layer = document.getElementById('petLayer');
+  pet.button = document.getElementById('petButton');
+  pet.status = document.getElementById('petStatus');
+  pet.live = document.getElementById('petLive');
+  const avatar = document.getElementById('petAvatar');
+  const homeAvatar = document.getElementById('homePetAvatar');
+  if (!pet.layer || !pet.button || !avatar) return;
+  pet.ready = true;
+  pet.avatarRefs = [avatar, homeAvatar].filter(Boolean).map(petMountAvatar);
+  refreshPetPalette();
+  petRestorePosition();
+  pet.button.addEventListener('pointerdown', petPointerDown);
+  pet.button.addEventListener('pointermove', petPointerMove);
+  pet.button.addEventListener('pointerup', petPointerUp);
+  pet.button.addEventListener('pointercancel', petPointerCancel);
+  pet.button.addEventListener('lostpointercapture', petPointerCancel);
+  pet.button.addEventListener('click', event => { if (event.detail === 0) petInteract(); else event.preventDefault(); });
+  window.addEventListener('resize', petPlace);
+  document.addEventListener('visibilitychange', petRefreshLoop);
+  petMotion.addEventListener('change', event => { pet.reducedMotion = event.matches; petRefreshLoop(); });
+  petPlace();
+  pet.layer.classList.add('pet-ready');
+  petApplyVisibility();
+  petRefreshLoop();
+  petProactive.init();
+}
+
+function petMountAvatar(container) {
+  container.innerHTML = PET_AVATAR_SVG;
+  const svg = container.querySelector('svg');
+  return {
+    container, svg, world: svg.querySelector('.avatar-world'), head: svg.querySelector('.avatar-head'),
+    face: svg.querySelector('.avatar-face'), leftArm: svg.querySelector('.avatar-arm-left'), rightArm: svg.querySelector('.avatar-arm-right'),
+    eyes: [...svg.querySelectorAll('.avatar-eye')], leftEye: svg.querySelector('.avatar-eye-left'), rightEye: svg.querySelector('.avatar-eye-right'),
+    browLeft: svg.querySelector('.avatar-brow-left'), browRight: svg.querySelector('.avatar-brow-right'),
+    smile: svg.querySelector('.avatar-mouth-smile'), worried: svg.querySelector('.avatar-mouth-worried')
+  };
+}
+
+function petAvatarFrame(now) {
+  if (!pet.ready || pet.hiddenForSafety || document.hidden || !pet.avatarRefs.length) { pet.avatarFrame = null; return; }
+  const t = (now - pet.startedAt) / 1000;
+  const motion = pet.reducedMotion || pet.motionLevel === 'none' ? 0 : pet.motionLevel === 'medium' ? 1.5 : 1;
+  const blink = !pet.reducedMotion && Math.sin(t * .73) > .994;
+  const mode = pet.mode;
+  const pose = pet.pose;
+  for (const ref of pet.avatarRefs) {
+    ref.world.style.transform = `translateY(${Math.sin(t * 1.7) * 2 * motion}px) scale(${1 + Math.sin(t * 1.8) * .006 * motion})`;
+    ref.head.style.transform = `rotate(${mode === 'uncertain' ? -7 : pose === 'listening' || mode === 'caring' ? 5 : mode === 'thinking' ? 3 : 0}deg)`;
+    ref.face.style.transform = mode === 'thinking' ? 'translate(3px,-2px)' : mode === 'attentive' || mode === 'engaged' ? 'translate(0,-1px)' : 'none';
+    ref.leftArm.style.transform = pose === 'listening' ? 'rotate(-9deg)' : 'none';
+    ref.rightArm.style.transform = pose === 'gentle_wave' ? `rotate(${Math.sin(t * 7) * 9 - 18}deg)` : 'none';
+    ref.eyes.forEach(eye => { eye.style.transform = `scaleY(${blink || mode === 'offline' ? .08 : mode === 'quiet' ? .65 : mode === 'thinking' ? .78 : mode === 'happy' ? 1.1 : 1})`; });
+    ref.browLeft.style.transform = mode === 'uncertain' || mode === 'worried' ? 'rotate(12deg)' : mode === 'thinking' ? 'rotate(-12deg)' : 'none';
+    ref.browRight.style.transform = mode === 'uncertain' || mode === 'worried' ? 'rotate(-5deg)' : mode === 'thinking' ? 'rotate(10deg)' : 'none';
+    const worried = mode === 'worried' || mode === 'uncertain' || mode === 'offline';
+    ref.smile.style.opacity = worried ? '0' : '1';
+    ref.worried.style.opacity = worried ? '1' : '0';
+  }
+  pet.avatarFrame = requestAnimationFrame(petAvatarFrame);
+}
+
+function petAvatarRefresh() {
+  if (pet.avatarFrame) cancelAnimationFrame(pet.avatarFrame);
+  pet.avatarFrame = null;
+  if (!document.hidden && !pet.hiddenForSafety && pet.ready) pet.avatarFrame = requestAnimationFrame(petAvatarFrame);
+}
+
+function petBounds() {
+  const layer = pet.layer.getBoundingClientRect();
+  const size = pet.button.offsetWidth || 88;
+  return { width: layer.width, height: layer.height, size, maxX: Math.max(0, layer.width - size), maxY: Math.max(0, layer.height - size) };
+}
+
+function petPlace() {
+  if (!pet.ready) return;
+  const b = petBounds();
+  const x = pet.dock === 'left' ? 8 : Math.max(8, b.maxX - 8);
+  const y = Math.max(8, Math.min(Math.max(8, b.maxY - 8), b.maxY * pet.yRatio));
+  pet.button.style.left = x + 'px';
+  pet.button.style.top = y + 'px';
+  pet.button.classList.toggle('dock-left', pet.dock === 'left');
+  pet.button.classList.toggle('dock-right', pet.dock !== 'left');
+  petAvatarRefresh();
+}
+
+function petSavePosition() {
+  try { localStorage.setItem('kunpeng.pet.position.v1', JSON.stringify({ dock: pet.dock, yRatio: pet.yRatio })); } catch (_) {}
+}
+function petRestorePosition() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('kunpeng.pet.position.v1'));
+    if (saved && (saved.dock === 'left' || saved.dock === 'right') && Number.isFinite(saved.yRatio)) {
+      pet.dock = saved.dock;
+      pet.yRatio = Math.max(0, Math.min(1, saved.yRatio));
+    }
+  } catch (_) {}
+}
+
+function petPointerDown(event) {
+  if (event.button !== undefined && event.button !== 0) return;
+  const rect = pet.button.getBoundingClientRect();
+  const layerRect = pet.layer.getBoundingClientRect();
+  pet.pointerId = event.pointerId;
+  pet.startX = event.clientX; pet.startY = event.clientY;
+  pet.originX = rect.left - layerRect.left; pet.originY = rect.top - layerRect.top;
+  pet.dragging = true; pet.moved = false;
+  pet.button.classList.add('dragging');
+  pet.button.setPointerCapture(event.pointerId);
+}
+function petPointerMove(event) {
+  if (!pet.dragging || event.pointerId !== pet.pointerId) return;
+  const dx = event.clientX - pet.startX, dy = event.clientY - pet.startY;
+  if (!pet.moved && Math.hypot(dx, dy) < 7) return;
+  pet.moved = true;
+  const b = petBounds();
+  const x = Math.max(8, Math.min(Math.max(8, b.maxX - 8), pet.originX + dx));
+  const y = Math.max(8, Math.min(Math.max(8, b.maxY - 8), pet.originY + dy));
+  pet.button.style.left = x + 'px'; pet.button.style.top = y + 'px';
+}
+function petPointerUp(event) {
+  if (!pet.dragging || event.pointerId !== pet.pointerId) return;
+  const wasMoved = pet.moved;
+  petPointerCancel(event);
+  if (wasMoved) {
+    const b = petBounds(), x = parseFloat(pet.button.style.left) || 0, y = parseFloat(pet.button.style.top) || 0;
+    pet.dock = x + b.size / 2 < b.width / 2 ? 'left' : 'right';
+    pet.yRatio = b.maxY ? Math.max(0, Math.min(1, y / b.maxY)) : .74;
+    petSavePosition(); petPlace(); petSay('停在这里啦', 1200, false);
+  } else { petInteract(); petProactive.notifyInteraction(); }
+}
+function petPointerCancel(event) {
+  if (event && pet.pointerId !== null && event.pointerId !== pet.pointerId) return;
+  if (pet.pointerId !== null && pet.button.hasPointerCapture && pet.button.hasPointerCapture(pet.pointerId)) pet.button.releasePointerCapture(pet.pointerId);
+  pet.dragging = false; pet.pointerId = null;
+  pet.button.classList.remove('dragging');
+  setTimeout(() => { pet.moved = false; }, 0);
+}
+
+function petSay(text, duration = 1800, announce = true) {
+  if (!pet.ready || pet.hiddenForSafety) return;
+  clearTimeout(pet.statusTimer);
+  pet.status.textContent = text;
+  pet.status.classList.add('show');
+  if (announce) pet.live.textContent = text;
+  if (duration > 0) pet.statusTimer = setTimeout(() => pet.status.classList.remove('show'), duration);
+}
+function petSetStable(mode, message, duration) {
+  pet.stableMode = mode; pet.mode = mode; pet.token++;
+  if (message) petSay(message, duration);
+  petRequestRender();
+}
+function petReact(mode, message, duration = 1700) {
+  const token = ++pet.token;
+  pet.mode = mode; if (message) petSay(message, duration);
+  petRequestRender();
+  setTimeout(() => { if (token === pet.token && pet.mode === mode) { pet.mode = pet.stableMode; petRequestRender(); } }, duration);
+}
+function petInteract() {
+  if (!pet.ready || pet.hiddenForSafety) return;
+  petReact('engaged', '我在呢', 1200);
+  petProactive.notifyInteraction();
+}
+function petSetSafetyContext(hidden) {
+  pet.contextHidden = hidden;
+  petApplyVisibility();
+}
+function petSetEmergency(active) {
+  pet.emergency = active;
+  petApplyVisibility();
+}
+function petApplyVisibility() {
+  pet.hiddenForSafety = pet.contextHidden || pet.emergency;
+  if (!pet.ready) return;
+  pet.layer.classList.toggle('pet-hidden', pet.hiddenForSafety);
+  pet.layer.setAttribute('aria-hidden', pet.hiddenForSafety ? 'true' : 'false');
+  petRefreshLoop();
+}
+function petUpdateContext(page, deviceTab) {
+  pet.activePage = page || pet.activePage;
+  if (deviceTab) pet.deviceTab = deviceTab;
+  const sosActive = pet.activePage === 'remind' && document.getElementById('rm-sos')?.classList.contains('active');
+  petSetSafetyContext(sosActive || pet.activePage === 'device' && (pet.deviceTab === 'car' || pet.deviceTab === 'arm'));
+}
+
+function petRequestRender() {
+  if (!pet.ready || pet.hiddenForSafety) return;
+  petAvatarRefresh();
+}
+function petRefreshLoop() {
+  if (!pet.ready) return;
+  if (pet.frame) { cancelAnimationFrame(pet.frame); pet.frame = null; }
+  petAvatarRefresh();
+}
+function petRenderLoop(now) {
+  pet.frame = null;
+  if (!document.hidden && !pet.hiddenForSafety && !pet.reducedMotion) pet.frame = requestAnimationFrame(petRenderLoop);
+}
+function petDraw(canvas, now) {
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.round(rect.width * dpr), height = Math.round(rect.height * dpr);
+  if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, rect.width, rect.height);
+  const s = Math.min(rect.width, rect.height), cx = rect.width / 2, cy = rect.height / 2;
+  const t = (now - pet.startedAt) / 1000;
+  const motion = {none: {amp: 0, freq: 0, blink: false}, low: {amp: 1, freq: 1, blink: true}, medium: {amp: 1.7, freq: 1.15, blink: true}}[pet.motionLevel] || {amp: 1, freq: 1, blink: true};
+  const moving = !pet.reducedMotion && motion.freq > 0;
+  const happy = ['happy', 'warm'].includes(pet.mode), caring = pet.mode === 'caring', attentive = ['attentive', 'engaged'].includes(pet.mode);
+  const thinking = pet.mode === 'thinking', uncertain = pet.mode === 'uncertain', offline = pet.mode === 'offline';
+  const pose = pet.pose || (caring ? 'listening' : attentive ? 'listening' : 'idle');
+  const poseElapsed = Math.max(0, now - (pet.poseEnteredAt || now)) / 1000;
+  const palette = pet.palette || {};
+  const accent = offline ? palette.offline : uncertain ? palette.warning : caring ? palette.caring : palette.accent;
+  const bob = moving ? Math.sin(t * 1.7 * motion.freq) * s * .012 * motion.amp : 0;
+  const headTilt = pose === 'listening' && moving ? Math.sin(t * 1.5 * motion.freq) * .035 * motion.amp : 0;
+  ctx.save(); ctx.translate(cx, cy + bob); ctx.rotate(headTilt); ctx.translate(-cx, -cy);
+  drawCompanionAura(ctx, cx, cy, s, accent, motion.amp, t);
+  drawCompanionTorso(ctx, cx, cy, s, accent, pose !== 'idle');
+  drawCompanionArms(ctx, cx, cy, s, accent, pose, poseElapsed, moving, t);
+  drawCompanionHead(ctx, cx, cy, s, accent);
+  drawCompanionFace(ctx, cx, cy, s, {happy, caring, attentive, thinking, uncertain, offline, moving: moving && motion.blink, t});
+  if (thinking) drawThinkingDots(ctx, cx, cy, s, t, accent);
+  ctx.restore();
+}
+function drawCompanionAura(ctx, cx, cy, s, accent, motionAmp = 1, t = 0) {
+  const glow = ctx.createRadialGradient(cx, cy, s*.14, cx, cy, s*.5);
+  const pulse = motionAmp ? 1 + Math.sin(t * 1.4) * .08 * motionAmp : 1;
+  glow.addColorStop(0, accent + (motionAmp ? '36' : '20')); glow.addColorStop(1, accent+'00');
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(pulse, pulse); ctx.translate(-cx, -cy);
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, s*.48, 0, Math.PI*2); ctx.fill(); ctx.restore();
+}
+function drawCompanionTorso(ctx, cx, cy, s, accent, active) {
+  const palette = pet.palette || {};
+  ctx.fillStyle = palette.shell; ctx.strokeStyle = accent; ctx.lineWidth = Math.max(1.5, s*.022);
+  ctx.beginPath(); ctx.roundRect(cx-s*.25, cy+s*.12, s*.5, s*.27, s*.12); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = active ? accent : palette.accent; ctx.globalAlpha = .65; ctx.fillRect(cx-s*.055, cy+s*.22, s*.11, s*.028); ctx.globalAlpha = 1;
+}
+function drawCompanionArms(ctx, cx, cy, s, accent, pose, elapsed = 0, moving = false, t = 0) {
+  const palette = pet.palette || {};
+  ctx.strokeStyle = palette.limb; ctx.lineWidth = Math.max(4, s*.075); ctx.lineCap = 'round';
+  const y = cy+s*.2;
+  let leftX = cx-s*.19, rightX = cx+s*.19, leftY = y+s*.08, rightY = y+s*.08;
+  if (pose === 'quiet_presence') { leftX = cx-s*.16; rightX = cx+s*.16; leftY = rightY = y+s*.04; }
+  if (pose === 'listening') { leftX = cx-s*.23; leftY = y+s*.03; rightX = cx+s*.14; rightY = y-s*.035; }
+  if (pose === 'gentle_wave') {
+    leftX = cx-s*.19; leftY = y+s*.08;
+    rightX = cx+s*.25; rightY = y-s*.10;
+    if (moving && elapsed < 1.6) rightX += Math.sin(elapsed * Math.PI * 2.5) * s*.045;
+  }
+  ctx.beginPath(); ctx.moveTo(cx-s*.19,y); ctx.lineTo(leftX,leftY); ctx.moveTo(cx+s*.19,y); ctx.lineTo(rightX,rightY); ctx.stroke();
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(leftX,leftY,s*.035,0,Math.PI*2); ctx.arc(rightX,rightY,s*.035,0,Math.PI*2); ctx.fill();
+}
+function drawCompanionHead(ctx, cx, cy, s, accent) {
+  const palette = pet.palette || {};
+  ctx.fillStyle = palette.shell; ctx.strokeStyle = accent; ctx.lineWidth = Math.max(1.5, s*.022);
+  ctx.beginPath(); ctx.roundRect(cx-s*.29, cy-s*.34, s*.58, s*.5, s*.17); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = palette.shellDark; ctx.beginPath(); ctx.roundRect(cx-s*.235, cy-s*.27, s*.47, s*.31, s*.11); ctx.fill();
+  ctx.fillStyle = accent; ctx.globalAlpha = .19; ctx.beginPath(); ctx.roundRect(cx-s*.20, cy-s*.235, s*.4, s*.06, s*.03); ctx.fill(); ctx.globalAlpha = 1;
+}
+function drawCompanionFace(ctx, cx, cy, s, state) {
+  const palette = pet.palette || {};
+  const eyeY = cy-s*.115, eyeDX = s*.115, blink = state.moving && !state.thinking && Math.sin(state.t*.72) > .992;
+  ctx.strokeStyle = palette.face; ctx.fillStyle = palette.face; ctx.lineWidth = Math.max(2, s*.032); ctx.lineCap = 'round';
+  for (const x of [cx-eyeDX,cx+eyeDX]) { if (blink || state.offline) { ctx.beginPath();ctx.moveTo(x-s*.035,eyeY);ctx.lineTo(x+s*.035,eyeY);ctx.stroke(); } else { ctx.beginPath();ctx.arc(x,eyeY,s*.038,0,Math.PI*2);ctx.fill(); } }
+  ctx.strokeStyle = state.caring ? palette.caring : palette.face;
+  ctx.beginPath();
+  if (state.happy) ctx.arc(cx, cy-s*.002, s*.085, .12*Math.PI, .88*Math.PI);
+  else if (state.uncertain) { ctx.moveTo(cx-s*.06,cy+s*.04);ctx.quadraticCurveTo(cx,cy-s*.005,cx+s*.06,cy+s*.04); }
+  else ctx.moveTo(cx-s*.055,cy+s*.025),ctx.quadraticCurveTo(cx,cy+s*.045,cx+s*.055,cy+s*.025);
+  ctx.stroke();
+}
+function drawThinkingDots(ctx, cx, cy, s, t, accent) { for (let i=0;i<3;i++) { ctx.globalAlpha=.35+.55*Math.max(0,Math.sin(t*3+i));ctx.fillStyle=accent;ctx.beginPath();ctx.arc(cx-s*.08+i*s*.08,cy+s*.115,s*.022,0,Math.PI*2);ctx.fill(); }ctx.globalAlpha=1; }
+
+
+/* ── BOOT ── */
+const bPh=[{p:15,t:'正在唤醒小鲲...'},{p:40,t:'加载记忆与技能...'},{p:65,t:'连接硬件模块...'},{p:85,t:'初始化完成，准备就绪'},{p:100,t:'小鲲已就绪 ✦'}];
+let bC=0,bI=0;
+function bTick(){if(bC>=100){setTimeout(()=>document.getElementById('boot').classList.add('hide'),400);return}
+bC+=Math.random()*4+2;if(bC>100)bC=100;
+document.getElementById('bFill').style.width=bC+'%';
+document.getElementById('bLbl').textContent=Math.round(bC)+'%';
+while(bI<bPh.length&&bC>=bPh[bI].p){document.getElementById('bSt').textContent=bPh[bI].t;bI++}
+if(bC<100)setTimeout(bTick,120+Math.random()*180);
+else setTimeout(()=>document.getElementById('boot').classList.add('hide'),500)}
+bTick();
+
+/* ── NAV ── */
+const pMap={home:'pg-home',chat:'pg-chat',remind:'pg-remind',device:'pg-device',setting:'pg-setting'};
+const nMap={home:0,chat:1,remind:2,device:3,setting:4};
+function nav(n){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+  const t=document.getElementById(pMap[n]);if(t)t.classList.add('active');
+  document.querySelectorAll('.ni').forEach((ni,i)=>ni.classList.toggle('active',i===nMap[n]));
+  petUpdateContext(n);
+}
+
+/* ── SUB-TABS ── */
+function switchRm(el,tab){
+  el.parentElement.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  const pg=document.getElementById('pg-remind');
+  pg.querySelectorAll('.sp').forEach(s=>s.classList.remove('active'));
+  const t=document.getElementById('rm-'+tab);if(t)t.classList.add('active');
+  // Fetch history when switching to history tab
+  if (tab === 'history') {
+    wsSend('reminders.history', {});
+  }
+  // Refresh today's reminders when switching back
+  if (tab === 'today') {
+    wsSend('reminders.get', {});
+  }
+  petUpdateContext('remind');
+}
+function switchDevTab(tab){
+  const pg=document.getElementById('pg-device');
+  pg.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+  const idx={dev:0,car:1,arm:2,cam:3,scene:4}[tab]||0;
+  pg.querySelectorAll('.stab')[idx].classList.add('active');
+  pg.querySelectorAll('.sp').forEach(s=>s.classList.remove('active'));
+  const t=document.getElementById('dv-'+tab);if(t)t.classList.add('active');
+  // Init arm joints UI when switching to arm tab
+  if (tab === 'arm') initArmJoints();
+  petUpdateContext('device', tab);
+}
+function switchSt(el,tab){
+  el.parentElement.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  const pg=document.getElementById('pg-setting');
+  pg.querySelectorAll('.sp').forEach(s=>s.classList.remove('active'));
+  const t=document.getElementById('st-'+tab);if(t)t.classList.add('active');
+}
+
+/* ── ROOM ── */
+function switchRoom(el,room){
+  el.parentElement.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  document.querySelectorAll('.rct').forEach(r=>r.classList.remove('active'));
+  const t=document.getElementById('rm-'+room);if(t)t.classList.add('active');
+}
+
+/* ── DEVICE TOGGLE ── */
+function tgDev(card){
+  const tgl=card.querySelector('.tgl'),ic=card.querySelector('.dc-ic'),st=card.querySelector('.dc-st');
+  const on=tgl.classList.toggle('on');
+  ic.classList.toggle('on',on);ic.classList.toggle('off',!on);
+  st.textContent=on?'已开启':on?'已关闭':'已关闭';
+  st.className=on?'dc-st tx-ok':'dc-st';
+  wsSend('device.toggle', {device: card.querySelector('.dc-nm').textContent});
+}
+
+/* ── REMINDER TOGGLE (with server sync) ── */
+function toggleRm(el){
+  const card = el.closest('.rm-card');
+  const id = parseInt(card.dataset.id);
+  el.classList.toggle('done');
+  el.textContent = el.classList.contains('done') ? '✓' : '';
+  card.classList.toggle('done', el.classList.contains('done'));
+  if (id) wsSend('reminders.toggle', {id: id});
+}
+
+/* ── RENDER REMINDERS (dynamic from server) ── */
+function renderReminders(items) {
+  const container = document.getElementById('rmTodayList');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!items || items.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--tx4);padding:30px;font-size:15px">今天没有提醒事项 🎉</div>';
+    return;
+  }
+  // Sort by time
+  items.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'rm-card' + (item.done ? ' done' : '');
+    div.dataset.id = item.id;
+    const doneClass = item.done ? ' done' : '';
+    const checkText = item.done ? '✓' : '';
+    const statusText = item.done ? (item.desc || '') + ' · 已完成' : (item.desc || '');
+    div.innerHTML = `<div class="rm-t">${item.time || '--:--'}</div><div class="rm-ic">${item.icon || '📌'}</div><div class="rm-bd"><div class="rm-nm">${item.title}</div><div class="rm-ds">${statusText}</div></div><div class="rm-ck${doneClass}" onclick="toggleRm(this)">${checkText}</div>`;
+    container.appendChild(div);
+  });
+}
+
+/* ── RENDER HISTORY (grouped by date) ── */
+function renderHistory(history) {
+  const container = document.getElementById('rmHistoryList');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!history || history.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--tx4);padding:30px;font-size:15px">暂无历史记录</div>';
+    return;
+  }
+  history.forEach(day => {
+    const dateDiv = document.createElement('div');
+    dateDiv.className = 'card mb8';
+    const dateStr = day.date || '';
+    const d = new Date(dateStr);
+    const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
+    const weekday = isNaN(d.getTime()) ? '' : weekdays[d.getDay()];
+    const isToday = dateStr === new Date().toISOString().slice(0, 10);
+    const label = isToday ? '今天' : dateStr + ' ' + weekday;
+    let html = `<div class="card-t" style="color:var(--pri)">${label}</div>`;
+    (day.items || []).forEach(item => {
+      const statusIcon = item.done ? '✅' : '⬜';
+      html += `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:14px;border-bottom:1px solid var(--bd)"><span>${statusIcon}</span><span style="color:var(--tx3);min-width:42px">${item.time || ''}</span><span>${item.icon || ''} ${item.title}</span></div>`;
+    });
+    dateDiv.innerHTML = html;
+    container.appendChild(dateDiv);
+  });
+}
+
+/* ── CHAT ── */
+function sendMsg(){
+  const inp=document.getElementById('chIn'),text=inp.value.trim();if(!text)return;
+  appendChatBubble(text, 'u');
+  inp.value='';
+
+  if (wsConnected) {
+    showThinking();
+    wsSend('chat.send', {text: text});
+  } else {
+    // Fallback: local mock reply
+    setTimeout(()=>{
+      hideThinking();
+      const a=document.createElement('div');a.className='bub a';
+      a.textContent='网络未连接，请检查连接后重试。';
+      document.getElementById('chMsgs').appendChild(a);
+      document.getElementById('chMsgs').scrollTop=document.getElementById('chMsgs').scrollHeight;
+    },300);
+  }
+}
+
+/* ── THINKING INDICATOR ── */
+let thinkTimer = null;
+function showThinking() {
+  hideThinking();
+  petSetStable('thinking', '正在想…', 0);
+  const msgs = document.getElementById('chMsgs');
+  const div = document.createElement('div');
+  div.className = 'think-bub';
+  div.id = 'thinkBub';
+  div.innerHTML = '<div class="think-spin"></div><span>小鲲正在思考...</span>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  // Timeout: if no reply in 30s, show error
+  thinkTimer = setTimeout(() => {
+    hideThinking();
+    petReact('worried', '想得有点久');
+    appendChatBubble('⚠ 小鲲想了太久了，可能网络不太好，请再试一次吧。', 'a');
+  }, 90000);
+}
+function hideThinking() {
+  if (thinkTimer) { clearTimeout(thinkTimer); thinkTimer = null; }
+  const el = document.getElementById('thinkBub');
+  if (el) el.remove();
+  if (pet.ready && pet.stableMode === 'thinking') petSetStable(wsConnected ? 'idle' : 'offline');
+}
+
+/* ── PHOTO ANALYZE ── */
+function analyzePhoto() {
+  // First take a photo, then ask the agent to analyze it
+  if (!wsConnected) { alert('网络未连接'); return; }
+  appendChatBubble('拍张照片，让小鲲看看画面里有什么', 'u');
+  showThinking();
+  // Send chat message that triggers photo + vision analysis
+  wsSend('chat.send', {text: '拍张照片，帮我看看画面里有什么'});
+}
+
+/* ── CAR CONTROL ── */
+let carSpeed = 50;
+let carMoving = false;
+let carEstopActive = false;
+let armEstopActive = false;
+
+function carMove(dir) {
+  if (carEstopActive) { appendChatBubble('⚠ 紧急停止已激活，请先点击「解除停止」', 'a'); return; }
+  carMoving = true;
+  wsSend('car.move', {direction: dir, speed: carSpeed});
+  document.getElementById('carDir').textContent = {forward:'前进',backward:'后退',left:'左转',right:'右转'}[dir] || dir;
+  const half = Math.round(carSpeed * 0.6);
+  const speeds = {forward:[carSpeed,carSpeed], backward:[-carSpeed,-carSpeed], left:[half,carSpeed], right:[carSpeed,half]};
+  const s = speeds[dir] || [0,0];
+  document.getElementById('carL').textContent = s[0];
+  document.getElementById('carR').textContent = s[1];
+  document.getElementById('carSpd').textContent = carSpeed;
+  // Highlight active dpad button
+  document.querySelectorAll('.dpad-btn').forEach(b => b.classList.remove('pressed'));
+  const active = document.querySelector(`.dpad-btn[data-dir="${dir}"]`);
+  if (active) active.classList.add('pressed');
+}
+function carStop() {
+  if (!carMoving) return;
+  carMoving = false;
+  wsSend('car.stop', {});
+  document.getElementById('carDir').textContent = '停止';
+  document.getElementById('carSpd').textContent = '0';
+  document.getElementById('carL').textContent = '0';
+  document.getElementById('carR').textContent = '0';
+  document.querySelectorAll('.dpad-btn').forEach(b => b.classList.remove('pressed'));
+}
+function carEstop() {
+  carEstopActive = true;
+  petSetEmergency(true);
+  carMoving = false;
+  wsSend('emergency.stop', {scope:'all'});
+  carStop();
+  armEstopLocal();
+  showEstopUI('car');
+  showEstopUI('arm');
+  appendChatBubble('🛑 已紧急停止所有设备', 'a');
+}
+function resetEstop() {
+  wsSend('emergency.reset', {});
+  carEstopActive = false;
+  armEstopActive = false;
+  petSetEmergency(false);
+  hideEstopUI('car');
+  hideEstopUI('arm');
+  document.getElementById('carDir').textContent = '—';
+  document.getElementById('armStTxt').textContent = '待机';
+}
+function showEstopUI(which) {
+  const area = document.getElementById(which + 'EstopArea');
+  if (!area) return;
+  area.innerHTML = `<div class="estop-bar" style="background:rgba(248,81,73,.15);border-style:solid" onclick="resetEstop()">
+    <span style="font-size:20px">🛑</span>
+    <span style="font-size:15px;font-weight:600;color:var(--err)">已紧急停止</span>
+    <span style="padding:4px 12px;background:var(--ok);color:var(--on-accent);border-radius:6px;font-size:14px;cursor:pointer;margin-left:8px">解除停止</span>
+  </div>`;
+}
+function hideEstopUI(which) {
+  const area = document.getElementById(which + 'EstopArea');
+  if (!area) return;
+  const isArm = which === 'arm';
+  area.innerHTML = `<div class="estop-bar" onclick="${isArm ? 'armEstop()' : 'carEstop()'}">
+    <span style="font-size:20px">🛑</span>
+    <span style="font-size:15px;font-weight:600;color:var(--err)">紧急停止</span>
+  </div>`;
+}
+function setCarSpeed(e) {
+  const track = document.getElementById('carSpdTrack');
+  const rect = track.getBoundingClientRect();
+  let pct = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+  pct = Math.max(5, Math.min(100, pct));
+  setCarSpeedVal(pct);
+}
+function setCarSpeedVal(v) {
+  carSpeed = v;
+  document.getElementById('carSpdFill').style.width = v + '%';
+  document.getElementById('carSpdThumb').style.left = 'calc(' + v + '% - 10px)';
+  document.getElementById('carSpdVal').textContent = v + '%';
+}
+
+/* ── KEYBOARD CONTROL (WASD / Arrow keys when car tab is active) ── */
+let keyHeld = {};
+document.addEventListener('keydown', function(e) {
+  // Only respond when car tab is active and not typing in chat
+  const carTab = document.getElementById('dv-car');
+  if (!carTab || !carTab.classList.contains('active')) return;
+  if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+  if (keyHeld[e.key]) return;  // prevent repeat
+  keyHeld[e.key] = true;
+  const map = {'w':'forward','W':'forward','ArrowUp':'forward','s':'backward','S':'backward','ArrowDown':'backward',
+               'a':'left','A':'left','ArrowLeft':'left','d':'right','D':'right','ArrowRight':'right'};
+  if (map[e.key]) { e.preventDefault(); carMove(map[e.key]); }
+  if (e.key === ' ' || e.key === 'Escape') { e.preventDefault(); carStop(); }
+});
+document.addEventListener('keyup', function(e) {
+  const map = {'w':1,'W':1,'ArrowUp':1,'s':1,'S':1,'ArrowDown':1,'a':1,'A':1,'ArrowLeft':1,'d':1,'D':1,'ArrowRight':1};
+  if (map[e.key]) { keyHeld[e.key] = false; if (carMoving) carStop(); }
+});
+
+/* ── ARM CONTROL ── */
+const ARM_JOINTS = [
+  {id:'j1', name:'底座', min:0, max:180, val:90},
+  {id:'j2', name:'肩关节', min:0, max:180, val:90},
+  {id:'j3', name:'肘关节', min:0, max:180, val:90},
+  {id:'j4', name:'腕俯仰', min:0, max:180, val:90},
+  {id:'j5', name:'腕旋转', min:0, max:180, val:90},
+  {id:'j6', name:'夹爪',   min:0, max:90,  val:45},
+];
+let armInited = false;
+
+function initArmJoints() {
+  if (armInited) return;
+  armInited = true;
+  const container = document.getElementById('armJoints');
+  container.innerHTML = '';
+  ARM_JOINTS.forEach(j => {
+    const pct = ((j.val - j.min) / (j.max - j.min)) * 100;
+    const div = document.createElement('div');
+    div.className = 'arm-joint';
+    div.innerHTML = `<span class="aj-label">${j.name}</span>
+      <div class="aj-track" data-jid="${j.id}" data-min="${j.min}" data-max="${j.max}" onclick="armJointClick(event,this)">
+        <div class="aj-fill" id="af-${j.id}" style="width:${pct}%"></div>
+      </div>
+      <span class="aj-val" id="av-${j.id}">${j.val}°</span>`;
+    container.appendChild(div);
+  });
+}
+
+function armJointClick(e, track) {
+  if (armEstopActive) { appendChatBubble('⚠ 紧急停止已激活，请先点击「解除停止」', 'a'); return; }
+  const rect = track.getBoundingClientRect();
+  let pct = (e.clientX - rect.left) / rect.width;
+  pct = Math.max(0, Math.min(1, pct));
+  const min = parseInt(track.dataset.min);
+  const max = parseInt(track.dataset.max);
+  const angle = Math.round(min + pct * (max - min));
+  const jid = track.dataset.jid;
+  // Update UI
+  const fill = document.getElementById('af-' + jid);
+  const val = document.getElementById('av-' + jid);
+  fill.style.width = (pct * 100) + '%';
+  val.textContent = angle + '°';
+  // Update local state
+  const j = ARM_JOINTS.find(x => x.id === jid);
+  if (j) j.val = angle;
+  // Send to server
+  wsSend('arm.move', {joint: jid, angle: angle});
+}
+
+function armPreset(name) {
+  if (armEstopActive) { appendChatBubble('⚠ 紧急停止已激活，请先点击「解除停止」', 'a'); return; }
+  wsSend('arm.preset', {preset: name});
+  // Update UI for known presets
+  const presets = {
+    home:  {j1:90,j2:90,j3:90,j4:90,j5:90,j6:45},
+    grip:  {j6:10},
+    release:{j6:85},
+    wave:  {j1:45,j2:90,j3:90,j4:90,j5:90,j6:45},
+    drink: {j1:90,j2:60,j3:45,j4:120,j5:90,j6:30},
+  };
+  const angles = presets[name];
+  if (angles) {
+    ARM_JOINTS.forEach(j => {
+      if (angles[j.id] !== undefined) {
+        j.val = angles[j.id];
+        const pct = ((j.val - j.min) / (j.max - j.min)) * 100;
+        const fill = document.getElementById('af-' + j.id);
+        const val = document.getElementById('av-' + j.id);
+        if (fill) fill.style.width = pct + '%';
+        if (val) val.textContent = j.val + '°';
+      }
+    });
+  }
+  const labels = {home:'归位',grip:'夹取',release:'释放',wave:'挥手',drink:'递水'};
+  document.getElementById('armStTxt').textContent = labels[name] || '执行中';
+  if (name === 'grip') document.getElementById('armGrip').textContent = '夹紧';
+  if (name === 'release') document.getElementById('armGrip').textContent = '张开';
+}
+
+function armEstop() {
+  armEstopActive = true;
+  carEstopActive = true;
+  petSetEmergency(true);
+  wsSend('emergency.stop', {scope:'all'});
+  if (carMoving) carStop();
+  armEstopLocal();
+  showEstopUI('arm');
+  showEstopUI('car');
+}
+function armEstopLocal() {
+  armEstopActive = true;
+  document.getElementById('armStTxt').textContent = '已停止';
+}
+
+/* ── CLOCK ── */
+function updClock(){
+  const n=new Date(),t=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  document.getElementById('sTime').textContent=t;
+  const h=n.getHours();let g='您好呀';
+  if(h<6)g='夜深了，注意休息';else if(h<11)g='早上好呀';else if(h<14)g='中午好，吃午饭了吗';else if(h<18)g='下午好呀';else g='晚上好呀';
+  document.getElementById('greet').textContent='王大爷，'+g;
+  const dateEl = document.getElementById('hDate');
+  if (dateEl) dateEl.textContent = n.toLocaleDateString('zh-CN', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
+}
+updClock();setInterval(updClock,30000);
+
+initThemeSelector();
+petInit();
+
+// Start WebSocket connection after boot
+setTimeout(connectWS, 2000);
+</script>
+</body>
+</html>

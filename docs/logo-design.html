@@ -1,0 +1,446 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小鲲 Logo 设计 v3 - KunPeng Cortex</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+    background: #f5f0eb;
+    color: #3d3529;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 56px 24px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 40px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+    color: #2c2416;
+  }
+  .subtitle {
+    color: #8c7a5e;
+    font-size: 14px;
+    letter-spacing: 1px;
+    margin-bottom: 56px;
+  }
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    justify-content: center;
+    max-width: 1100px;
+  }
+  .card {
+    background: #fffcf8;
+    border-radius: 24px;
+    padding: 40px 32px;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 2px 20px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.06);
+    transition: transform .25s,box-shadow .25s;
+    position: relative;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.06);
+  }
+  .card.best {
+    box-shadow: 0 2px 24px rgba(132,99,52,.1), 0 1px 3px rgba(132,99,52,.08);
+  }
+  .badge {
+    position: absolute;
+    top: -14px;
+    right: 20px;
+    background: #c4873a;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 20px;
+    letter-spacing: 2px;
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 24px;
+    color: #2c2416;
+  }
+  canvas { border-radius: 50%; }
+  .specs {
+    width: 100%;
+    margin-top: 20px;
+  }
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0ebe0;
+    font-size: 12px;
+    color: #8c7a5e;
+    letter-spacing: .3px;
+  }
+  .spec-row span:last-child { color: #5c4f3b; }
+  .color-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .tagline {
+    margin-top: 20px;
+    background: #faf6ef;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 12px;
+    color: #8c7a5e;
+    text-align: center;
+    letter-spacing: .3px;
+    line-height: 1.8;
+  }
+  .section {
+    max-width: 1000px;
+    margin-top: 72px;
+    width: 100%;
+  }
+  .section h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #2c2416;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    border-left: 3px solid #c4873a;
+    padding-left: 12px;
+  }
+  .preview-section {
+    margin-top: 72px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .preview-section h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #2c2416;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    border-left: 3px solid #c4873a;
+    padding-left: 12px;
+  }
+  .phone-mock {
+    background: #fffcf8;
+    border-radius: 28px;
+    width: 290px;
+    margin: 0 auto;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,.06);
+  }
+  .phone-top {
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0ebe0;
+  }
+  .phone-top .time { color: #5c4f3b; font-size: 13px; font-weight: 500; }
+  .phone-body {
+    padding: 28px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .phone-body canvas { border-radius: 50%; }
+  .phone-body .greeting {
+    color: #2c2416;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    margin-top: 2px;
+  }
+  .phone-body .conn {
+    font-size: 12px;
+    color: #5a8a5a;
+    letter-spacing: .5px;
+  }
+  .phone-body .conn::before {
+    content: "● ";
+    font-size: 7px;
+  }
+  .env-card {
+    background: #faf6ef;
+    border-radius: 14px;
+    padding: 14px 18px;
+    width: 100%;
+    margin-top: 6px;
+  }
+  .env-row {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+  }
+  .env-item .val {
+    font-size: 17px;
+    font-weight: 700;
+    color: #2c2416;
+  }
+  .env-item .lbl {
+    font-size: 10px;
+    color: #8c7a5e;
+    margin-top: 2px;
+  }
+  .quick-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 6px;
+    width: 100%;
+  }
+  .quick-btn {
+    flex: 1;
+    background: #faf6ef;
+    border-radius: 10px;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 12px;
+    color: #5c4f3b;
+    font-weight: 500;
+  }
+  .phone-nav {
+    display: flex;
+    border-top: 1px solid #f0ebe0;
+  }
+  .phone-nav .ni {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0 14px;
+    font-size: 10px;
+    color: #b8a88a;
+    letter-spacing: .3px;
+  }
+  .phone-nav .ni.on { color: #c4873a; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>小鲲</h1>
+<p class="subtitle">居家养老 AI 助手 · Logo 设计 V3</p>
+
+<div class="grid">
+  <!-- Plan A: Warm beige + soft fish -->
+  <div class="card best">
+    <div class="badge">推荐</div>
+    <div class="card-title">暖阳 · 圆润鱼</div>
+    <canvas id="logoa" width="200" height="200"></canvas>
+    <div class="specs">
+      <div class="spec-row"><span>底色</span><span><span class="color-dot" style="background:#fdf6ee"></span>#FDF6EE 暖杏</span></div>
+      <div class="spec-row"><span>外圈</span><span><span class="color-dot" style="background:#e8c9a0"></span>#E8C9A0 亚麻金圆环</span></div>
+      <div class="spec-row"><span>鱼身</span><span><span class="color-dot" style="background:#c4873a"></span>#C4873A 焦糖色，弧线圆润</span></div>
+      <div class="spec-row"><span>鱼眼</span><span>月牙弯弯，像在微笑</span></div>
+      <div class="spec-row"><span>感觉</span><span>亲切 · 温暖 · 像家人</span></div>
+    </div>
+    <div class="tagline">像是午后阳光洒在木桌上<br>鱼在微笑，老人在打盹<br>——这就是"陪伴"的样子</div>
+  </div>
+
+  <!-- Plan B -->
+  <div class="card">
+    <div class="card-title">晨露 · 轻盈鱼</div>
+    <canvas id="logob" width="200" height="200"></canvas>
+    <div class="specs">
+      <div class="spec-row"><span>底色</span><span><span class="color-dot" style="background:#f2f7f2"></span>#F2F7F2 薄绿</span></div>
+      <div class="spec-row"><span>外圈</span><span><span class="color-dot" style="background:#8cb89c"></span>#8CB89C 灰绿双环</span></div>
+      <div class="spec-row"><span>鱼身</span><span><span class="color-dot" style="background:#5a8a6a"></span>#5A8A6A 松针绿，体态轻盈</span></div>
+      <div class="spec-row"><span>鱼眼</span><span>小圆点，好奇张望</span></div>
+      <div class="spec-row"><span>感觉</span><span>清新 · 活力 · 清晨</span></div>
+    </div>
+    <div class="tagline">像晨练回来的老人推开窗<br>带着露水的清新和一天的活力</div>
+  </div>
+
+  <!-- Plan C -->
+  <div class="card">
+    <div class="card-title">晚霞 · 沉稳鱼</div>
+    <canvas id="logoc" width="200" height="200"></canvas>
+    <div class="specs">
+      <div class="spec-row"><span>底色</span><span><span class="color-dot" style="background:#f8f4f0"></span>#F8F4F0 米灰</span></div>
+      <div class="spec-row"><span>外圈</span><span><span class="color-dot" style="background:#8b6f5e"></span>#8B6F5E 陶土褐圆环</span></div>
+      <div class="spec-row"><span>鱼身</span><span><span class="color-dot" style="background:#6b4c3b"></span>#6B4C3B 栗棕色，体态沉稳</span></div>
+      <div class="spec-row"><span>眉心</span><span>陶瓷白小圆点</span></div>
+      <div class="spec-row"><span>感觉</span><span>稳重 · 踏实 · 可依靠</span></div>
+    </div>
+    <div class="tagline">像老藤椅上坐着喝茶的爷爷<br>不说话，但你知道他一直都在</div>
+  </div>
+</div>
+
+<!-- Phone preview: Plan A -->
+<div class="preview-section">
+  <h2>首页效果预览</h2>
+  <div class="phone-mock">
+    <div class="phone-top">
+      <span class="time">09:30</span>
+    </div>
+    <div class="phone-body">
+      <canvas id="phoneLogo" width="100" height="100"></canvas>
+      <div class="greeting">张大爷，早上好呀</div>
+      <div class="conn">小鲲在线</div>
+      <div class="env-card">
+        <div class="env-row">
+          <div class="env-item"><div class="val">26°</div><div class="lbl">温度</div></div>
+          <div class="env-item"><div class="val">60%</div><div class="lbl">湿度</div></div>
+          <div class="env-item"><div class="val">晴</div><div class="lbl">天气</div></div>
+        </div>
+      </div>
+      <div class="quick-row">
+        <div class="quick-btn">📷 拍个照</div>
+        <div class="quick-btn">🔔 看提醒</div>
+      </div>
+    </div>
+    <div class="phone-nav">
+      <div class="ni on">● 首页</div>
+      <div class="ni">会话</div>
+      <div class="ni">提醒</div>
+      <div class="ni">家居</div>
+      <div class="ni">设置</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Draw logo ──
+function drawFishLogo(ctx, size, opts) {
+  const cx = size / 2, cy = size / 2, R = size / 2;
+
+  // Background circle
+  ctx.fillStyle = opts.bg;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();
+
+  // Subtle inner ring
+  if (opts.ring) {
+    ctx.strokeStyle = opts.ring;
+    ctx.lineWidth = opts.ringWidth || 2;
+    ctx.beginPath(); ctx.arc(cx, cy, R - 7, 0, Math.PI*2); ctx.stroke();
+
+    // Second thinner ring
+    ctx.strokeStyle = opts.ring;
+    ctx.globalAlpha = .35;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, R - 12, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Fish body — smooth & plump
+  ctx.fillStyle = opts.fishColor;
+  ctx.beginPath();
+  const hx = cx - R*.38, hy = cy;
+  const tx = cx + R*.38, ty = cy;
+  ctx.moveTo(hx, hy);
+
+  if (opts.style === 'plump') {
+    // Rounder, friendlier shape
+    ctx.bezierCurveTo(hx + R*.12, cy - R*.52, tx - R*.22, cy - R*.45, tx - R*.10, ty - R*.16);
+    ctx.bezierCurveTo(tx + R*.08, cy - R*.36, tx + R*.28, cy - R*.18, tx + R*.06, ty + R*.04);
+    ctx.bezierCurveTo(tx + R*.20, ty, tx + R*.20, ty, tx + R*.06, ty - R*.04);
+    ctx.bezierCurveTo(tx + R*.28, cy + R*.18, tx + R*.08, cy + R*.36, tx - R*.10, ty + R*.16);
+    ctx.bezierCurveTo(tx - R*.22, cy + R*.45, hx + R*.12, cy + R*.52, hx, hy);
+  } else {
+    // Sleeker shape
+    ctx.bezierCurveTo(hx + R*.08, cy - R*.48, tx - R*.25, cy - R*.42, tx - R*.12, ty - R*.15);
+    ctx.bezierCurveTo(tx + R*.12, cy - R*.38, tx + R*.28, cy - R*.20, tx + R*.06, ty + R*.03);
+    ctx.bezierCurveTo(tx + R*.18, ty, tx + R*.18, ty, tx + R*.06, ty - R*.03);
+    ctx.bezierCurveTo(tx + R*.28, cy + R*.20, tx + R*.12, cy + R*.38, tx - R*.12, ty + R*.15);
+    ctx.bezierCurveTo(tx - R*.25, cy + R*.42, hx + R*.08, cy + R*.48, hx, hy);
+  }
+  ctx.fill();
+
+  // Soft belly highlight
+  const bellyGrad = ctx.createRadialGradient(cx + R*.05, cy + R*.3, R*.05, cx, cy + R*.2, R*.45);
+  bellyGrad.addColorStop(0, opts.highlight || 'rgba(255,255,255,.25)');
+  bellyGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = bellyGrad;
+  ctx.beginPath(); ctx.arc(cx, cy, R*.7, 0, Math.PI*2); ctx.fill();
+
+  // Eye
+  if (opts.eyeType === 'smile') {
+    ctx.strokeStyle = '#fffcf8';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(cx - R*.32, cy - R*.06, R*.08, Math.PI*.15, Math.PI*.85);
+    ctx.stroke();
+  } else if (opts.eyeType === 'dot') {
+    ctx.fillStyle = '#fffcf8';
+    ctx.beginPath(); ctx.arc(cx - R*.32, cy - R*.06, R*.055, 0, Math.PI*2); ctx.fill();
+  } else if (opts.eyeType === 'ceramic') {
+    ctx.fillStyle = '#FDF6EE';
+    ctx.beginPath(); ctx.arc(cx - R*.32, cy - R*.06, R*.07, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = opts.fishColor;
+    ctx.beginPath(); ctx.arc(cx - R*.32, cy - R*.06, R*.035, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Tiny dorsal fin
+  ctx.fillStyle = opts.finColor || 'rgba(0,0,0,.06)';
+  ctx.beginPath();
+  ctx.moveTo(cx - R*.05, cy - R*.22);
+  ctx.quadraticCurveTo(cx + R*.10, cy - R*.42, cx + R*.24, cy - R*.25);
+  ctx.quadraticCurveTo(cx + R*.08, cy - R*.26, cx - R*.05, cy - R*.22);
+  ctx.fill();
+
+  // Tiny pectoral fin
+  ctx.beginPath();
+  ctx.moveTo(cx - R*.12, cy + R*.08);
+  ctx.quadraticCurveTo(cx - R*.18, cy + R*.22, cx - R*.28, cy + R*.16);
+  ctx.quadraticCurveTo(cx - R*.18, cy + R*.14, cx - R*.12, cy + R*.08);
+  ctx.fill();
+}
+
+// ── Plan A: 暖阳圆润鱼 ──
+drawFishLogo(document.getElementById('logoa').getContext('2d'), 200, {
+  bg: '#FDF6EE',
+  ring: '#E8C9A0', ringWidth: 2,
+  fishColor: '#C4873A',
+  finColor: 'rgba(180,120,60,.15)',
+  highlight: 'rgba(255,255,255,.2)',
+  eyeType: 'smile',
+  style: 'plump',
+});
+
+// ── Plan B: 晨露轻盈鱼 ──
+drawFishLogo(document.getElementById('logob').getContext('2d'), 200, {
+  bg: '#F2F7F2',
+  ring: '#8CB89C', ringWidth: 2,
+  fishColor: '#5A8A6A',
+  finColor: 'rgba(80,130,100,.15)',
+  eyeType: 'dot',
+  style: 'sleek',
+});
+
+// ── Plan C: 晚霞沉稳鱼 ──
+drawFishLogo(document.getElementById('logoc').getContext('2d'), 200, {
+  bg: '#F8F4F0',
+  ring: '#8B6F5E', ringWidth: 2,
+  fishColor: '#6B4C3B',
+  finColor: 'rgba(100,70,50,.15)',
+  eyeType: 'ceramic',
+  style: 'plump',
+});
+
+// ── Phone preview ──
+drawFishLogo(document.getElementById('phoneLogo').getContext('2d'), 100, {
+  bg: '#FDF6EE',
+  ring: '#E8C9A0', ringWidth: 2,
+  fishColor: '#C4873A',
+  finColor: 'rgba(180,120,60,.12)',
+  highlight: 'rgba(255,255,255,.2)',
+  eyeType: 'smile',
+  style: 'plump',
+});
+</script>
+
+</body>
+</html>

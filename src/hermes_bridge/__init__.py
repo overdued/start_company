@@ -8,5 +8,10 @@ from .memory_tool import KunpengMemoryStore
 from .session_search import SessionSearchDB
 from .skill_manager import SkillManager
 from .evolution_engine import EvolutionEngine
+from .memos_adapter import MemosStore
 
-__all__ = ["KunpengMemoryStore", "SessionSearchDB", "SkillManager", "EvolutionEngine"]
+__all__ = [
+    "KunpengMemoryStore", "SessionSearchDB",
+    "SkillManager", "EvolutionEngine",
+    "MemosStore",
+]

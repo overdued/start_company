@@ -1,0 +1,256 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小鲲 · 加载页面（横屏）</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #1a1f2a;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .wrapper {
+    width: 800px;
+    height: 480px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 4px 30px rgba(0,0,0,.3);
+  }
+  .content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 48px;
+  }
+  .left-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* ── Warm beige ── */
+  .warm-bg {
+    background: linear-gradient(135deg, #FDF6EE 0%, #F5EBDE 50%, #EDE0CE 100%);
+  }
+  .warm-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 15% 60%, rgba(200,160,110,.06) 0%, transparent 55%),
+                radial-gradient(circle at 85% 30%, rgba(220,180,120,.05) 0%, transparent 45%);
+    pointer-events: none;
+  }
+
+  /* ── Dark tech ── */
+  .dark-bg {
+    background: radial-gradient(ellipse at 30% 50%, #1a2035 0%, #0a0e18 100%);
+  }
+  .dark-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(88,166,255,.04) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(88,166,255,.03) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  /* ── Logo + GIF area ── */
+  .gif-area {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    flex-shrink: 0;
+  }
+  .spin-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 4px solid transparent;
+    animation: spinRing 1.6s linear infinite;
+  }
+  .warm-bg .spin-ring { border-top-color: #C4873A; border-right-color: rgba(200,135,58,.3); }
+  .dark-bg .spin-ring  { border-top-color: #58a6ff; border-right-color: rgba(88,166,255,.25); }
+  .spin-ring2 {
+    inset: 12px;
+    animation: spinRing 2.2s linear infinite reverse;
+  }
+  .spin-ring3 {
+    inset: 24px;
+    animation: spinRing 3s linear infinite;
+    border-width: 2px;
+  }
+  .warm-bg .spin-ring3 { border-top-color: rgba(200,160,110,.35); border-right-color: transparent; }
+  .dark-bg .spin-ring3  { border-top-color: rgba(88,166,255,.1); border-right-color: transparent; }
+  @keyframes spinRing { to { transform: rotate(360deg); } }
+
+  /* ── Brand ── */
+  .brand-name {
+    font-size: 34px;
+    font-weight: 600;
+    letter-spacing: 6px;
+    line-height: 1;
+  }
+  .warm-bg .brand-name { color: #2c2416; }
+  .dark-bg .brand-name  { color: #e6edf3; }
+  .brand-sub {
+    font-size: 12px;
+    letter-spacing: 4px;
+  }
+  .warm-bg .brand-sub { color: #8c7a5e; }
+  .dark-bg .brand-sub  { color: #484f58; }
+
+  /* ── Progress bar ── */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+  }
+  .progress-rail {
+    width: 200px;
+    height: 4px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .warm-bg .progress-rail { background: rgba(200,160,110,.15); }
+  .dark-bg .progress-rail  { background: rgba(255,255,255,.06); }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    width: 0%;
+    transition: width .3s ease;
+  }
+  .warm-bg .progress-fill { background: linear-gradient(90deg, #C4873A, #D4A55C); }
+  .dark-bg .progress-fill  { background: linear-gradient(90deg, #58a6ff, #79c0ff); }
+  .progress-text {
+    font-size: 12px;
+    letter-spacing: 2px;
+    white-space: nowrap;
+  }
+  .warm-bg .progress-text { color: #8c7a5e; }
+  .dark-bg .progress-text  { color: #484f58; }
+
+  /* ── Status ── */
+  .status-text {
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+  .warm-bg .status-text { color: #b8a88a; }
+  .dark-bg .status-text  { color: #30363d; }
+
+  /* ── Toggle ── */
+  .toggle-row {
+    display: flex;
+    gap: 10px;
+  }
+  .toggle-btn {
+    padding: 6px 18px;
+    border-radius: 20px;
+    border: 1px solid;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    background: none;
+    transition: all .2s;
+  }
+  .warm-bg .toggle-btn    { border-color: rgba(200,160,110,.3); color: #8c7a5e; }
+  .dark-bg .toggle-btn     { border-color: rgba(88,166,255,.2); color: #484f58; }
+  .toggle-btn:hover        { background: rgba(200,160,110,.08); }
+  .toggle-btn.active       { background: rgba(200,160,110,.15); }
+  .dark-bg .toggle-btn.active { background: rgba(88,166,255,.1); }
+</style>
+</head>
+<body>
+
+<div class="wrapper warm-bg" id="mainWrapper">
+  <div class="content">
+
+    <!-- Spinning rings (mimics GIF) on the LEFT -->
+    <div class="gif-area">
+      <div class="spin-ring"></div>
+      <div class="spin-ring spin-ring2"></div>
+      <div class="spin-ring spin-ring3"></div>
+    </div>
+
+    <!-- Text + Progress on the RIGHT -->
+    <div>
+      <div class="brand-name">小 鲲</div>
+      <div class="brand-sub">KUNPENG CORTEX</div>
+      <div class="progress-wrap">
+        <div class="progress-rail">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressLabel">0%</div>
+      </div>
+      <div class="status-text" id="statusText">正在唤醒小鲲...</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toggle-row">
+  <button class="toggle-btn active" id="warmBtn" onclick="switchTheme('warm')" style="border-color:rgba(200,160,110,.4);color:#8c7a5e;">暖色横屏</button>
+  <button class="toggle-btn" id="darkBtn" onclick="switchTheme('dark')" style="border-color:rgba(88,166,255,.2);color:#484f58;">深色横屏</button>
+</div>
+
+<script>
+const wrapper = document.getElementById('mainWrapper');
+const warmBtn = document.getElementById('warmBtn');
+const darkBtn = document.getElementById('darkBtn');
+const fill = document.getElementById('progressFill');
+const label = document.getElementById('progressLabel');
+const status = document.getElementById('statusText');
+
+const phases = [
+  { pct: 15,  text: '正在唤醒小鲲...' },
+  { pct: 40,  text: '加载记忆与技能...' },
+  { pct: 65,  text: '连接硬件模块...' },
+  { pct: 85,  text: '初始化完成，准备就绪' },
+  { pct: 100, text: '小鲲已就绪 ✦' },
+];
+
+let current = 0, idx = 0;
+
+function tick() {
+  if (current >= 100) return;
+  current += Math.random() * 3 + 1;
+  if (current > 100) current = 100;
+  fill.style.width = current + '%';
+  label.textContent = Math.round(current) + '%';
+  while (idx < phases.length && current >= phases[idx].pct) {
+    status.textContent = phases[idx].text;
+    idx++;
+  }
+  if (current < 100) setTimeout(tick, 200 + Math.random() * 300);
+}
+tick();
+
+function switchTheme(theme) {
+  wrapper.classList.remove('warm-bg','dark-bg');
+  warmBtn.classList.remove('active');
+  darkBtn.classList.remove('active');
+  if (theme === 'warm') { wrapper.classList.add('warm-bg'); warmBtn.classList.add('active'); }
+  else { wrapper.classList.add('dark-bg'); darkBtn.classList.add('active'); }
+}
+</script>
+</body>
+</html>

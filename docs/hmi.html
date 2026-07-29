@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800, initial-scale=1.0">
+<title>小鲲 · 居家养老 HMI</title>
+<style>
+/* ============================================================
+   0. RESET & BASE
+   ============================================================ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  background:#1a1f2a;color:#2c2416;user-select:none;
+  display:flex;align-items:center;justify-content:center}
+
+/* ============================================================
+   1. CSS VARIABLES
+   ============================================================ */
+:root{
+  --bg:#FDF6EE; --bg2:#F5EBDE; --card:#fffcf8; --card2:#faf6ef;
+  --primary:#C4873A; --primary-light:#E8C9A0; --primary-dark:#A06A28;
+  --text:#2c2416; --text2:#5c4f3b; --text3:#8c7a5e; --text4:#b8a88a;
+  --border:#f0ebe0; --border2:#e8dfd0;
+  --green:#5a8a5a; --red:#c44a4a; --yellow:#c4a03a; --blue:#5a7ac4;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 2px 12px rgba(0,0,0,.05);
+  --shadow-lg:0 4px 24px rgba(0,0,0,.08);
+}
+
+/* ============================================================
+   2. LAYOUT SHELL
+   ============================================================ */
+#app{width:800px;height:480px;position:relative;overflow:hidden;
+  border-radius:12px;box-shadow:0 4px 30px rgba(0,0,0,.3);background:#FDF6EE}
+
+/* ── Status Bar ── */
+#statusBar{
+  position:absolute;top:0;left:0;right:0;height:32px;z-index:100;
+  background:linear-gradient(180deg,rgba(253,246,238,.98),rgba(253,246,238,.92));
+  backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;font-size:11px;color:var(--text3);letter-spacing:.5px;
+  border-bottom:1px solid var(--border);
+}
+.sb-left{display:flex;align-items:center;gap:14px}
+.sb-right{display:flex;align-items:center;gap:12px}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px}
+
+/* ── Bottom Nav ── */
+#bottomNav{
+  position:absolute;bottom:0;left:0;right:0;height:52px;z-index:100;
+  background:var(--card);border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-around;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:10px;color:var(--text4);letter-spacing:.5px;cursor:pointer;
+  padding:4px 16px;border-radius:8px;transition:all .2s;
+}
+.nav-item:hover{background:rgba(196,135,58,.06)}
+.nav-item.active{color:var(--primary);font-weight:600}
+.nav-item .nav-icon{font-size:18px;line-height:1}
+
+/* ── Content Area ── */
+#content{
+  position:absolute;top:32px;bottom:52px;left:0;right:0;
+  overflow:hidden;
+}
+.page{
+  display:none;position:absolute;inset:0;
+  overflow-y:auto;overflow-x:hidden;
+  padding:16px 20px;
+  scrollbar-width:none;
+}
+.page::-webkit-scrollbar{display:none}
+.page.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── Sub-tabs ── */
+.sub-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.sub-tab{
+  padding:5px 14px;border-radius:16px;font-size:12px;
+  color:var(--text3);background:var(--card2);cursor:pointer;
+  border:1px solid transparent;transition:all .2s;letter-spacing:.3px;
+}
+.sub-tab:hover{border-color:var(--primary-light)}
+.sub-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.sub-page{display:none}.sub-page.active{display:block}
+
+/* ============================================================
+   3. SHARED COMPONENTS
+   ============================================================ */
+.card{background:var(--card);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:10px}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;letter-spacing:.3px}
+.row{display:flex;align-items:center;gap:10px}
+.row-between{display:flex;align-items:center;justify-content:space-between}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+.text-primary{color:var(--primary)}.text-green{color:var(--green)}.text-red{color:var(--red)}
+.text-muted{color:var(--text4)}.text-sm{font-size:11px}.text-xs{font-size:10px}
+
+/* Toggle switch */
+.toggle{width:44px;height:24px;border-radius:12px;background:var(--border2);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .2s}
+.toggle.on{background:var(--primary)}.toggle.on::after{transform:translateX(20px)}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 20px;border-radius:var(--radius-sm);font-size:13px;
+  font-weight:500;cursor:pointer;border:none;transition:all .2s;letter-spacing:.3px;
+}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
+.btn-outline{background:transparent;border:1px solid var(--primary-light);color:var(--primary)}
+.btn-soft{background:var(--card2);color:var(--text2)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-lg{padding:14px 28px;font-size:15px;border-radius:var(--radius)}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.badge-green{background:rgba(90,138,90,.12);color:var(--green)}
+.badge-red{background:rgba(196,74,74,.12);color:var(--red)}
+.badge-yellow{background:rgba(196,160,58,.12);color:var(--yellow)}
+
+/* ============================================================
+   4. BOOT SEQUENCE
+   ============================================================ */
+#bootScreen{
+  position:absolute;inset:0;z-index:1000;
+  background:linear-gradient(135deg,#FDF6EE,#F5EBDE,#EDE0CE);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;transition:opacity .6s;
+}
+#bootScreen.hide{opacity:0;pointer-events:none}
+.boot-content{display:flex;align-items:center;gap:48px}
+.boot-spinner{width:140px;height:140px;position:relative}
+.boot-ring{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;animation:bootSpin 1.6s linear infinite}
+.boot-ring:nth-child(1){border-top-color:#C4873A;border-right-color:rgba(200,135,58,.3)}
+.boot-ring:nth-child(2){inset:12px;animation:bootSpin 2.2s linear infinite reverse;border-top-color:#C4873A;border-right-color:rgba(200,135,58,.3)}
+.boot-ring:nth-child(3){inset:24px;animation:bootSpin 3s linear infinite;border-width:2px;border-top-color:rgba(200,160,110,.35)}
+@keyframes bootSpin{to{transform:rotate(360deg)}}
+.boot-text .brand{font-size:34px;font-weight:600;letter-spacing:6px;color:var(--text)}
+.boot-text .brand-en{font-size:12px;letter-spacing:4px;color:var(--text3)}
+.boot-progress{display:flex;align-items:center;gap:12px;margin-top:8px}
+.boot-rail{width:200px;height:4px;border-radius:4px;background:rgba(200,160,110,.15);overflow:hidden}
+.boot-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#C4873A,#D4A55C);width:0%;transition:width .3s}
+.boot-label{font-size:12px;color:var(--text3);letter-spacing:2px}
+.boot-status{font-size:12px;color:var(--text4);letter-spacing:2px;margin-top:4px}
+
+/* ============================================================
+   5. SCREENSAVER
+   ============================================================ */
+#screensaver{
+  position:absolute;inset:0;z-index:900;
+  background:radial-gradient(ellipse at 30% 50%,#1a2035,#0a0e18);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  color:#e6edf3;cursor:pointer;
+}
+#screensaver.show{display:flex}
+.ss-time{font-size:72px;font-weight:200;letter-spacing:4px;font-variant-numeric:tabular-nums}
+.ss-date{font-size:16px;color:#484f58;margin-top:4px;letter-spacing:2px}
+.ss-hint{position:absolute;bottom:24px;font-size:11px;color:#30363d;letter-spacing:1px}
+.ss-reminder{margin-top:20px;background:rgba(88,166,255,.08);border-radius:var(--radius-sm);padding:10px 20px;font-size:13px;color:#58a6ff}
+
+/* ============================================================
+   6. HOME PAGE
+   ============================================================ */
+.home-greeting{font-size:24px;font-weight:600;color:var(--text);margin-bottom:2px}
+.home-sub{font-size:12px;color:var(--text3);margin-bottom:16px}
+.home-logo{width:56px;height:56px;border-radius:50%;background:var(--bg2);border:2px solid var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.env-card{background:var(--card2);border-radius:var(--radius);padding:12px 16px}
+.env-item{text-align:center}.env-val{font-size:20px;font-weight:700;color:var(--text)}.env-lbl{font-size:10px;color:var(--text3);margin-top:1px}
+.quick-btn{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;text-align:center;cursor:pointer;transition:all .2s;font-size:13px;color:var(--text2);
+}
+.quick-btn:hover{border-color:var(--primary-light);box-shadow:var(--shadow)}
+.quick-btn .qi{font-size:24px;margin-bottom:4px}
+.today-summary{font-size:12px;color:var(--text2);line-height:1.8}
+.today-summary .ts-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+/* ============================================================
+   7. CHAT PAGE
+   ============================================================ */
+#page-chat{display:none;flex-direction:column;padding:0;overflow:hidden}
+#page-chat.active{display:flex}
+.chat-messages{flex:1;overflow-y:auto;padding:16px 20px 10px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}
+.chat-messages::-webkit-scrollbar{display:none}
+.chat-bubble{max-width:70%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.7;letter-spacing:.2px}
+.chat-bubble.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.chat-bubble.ai{align-self:flex-start;background:var(--card);box-shadow:var(--shadow);border-bottom-left-radius:4px;color:var(--text)}
+.chat-bubble .hw-card{margin-top:6px;background:rgba(90,138,90,.08);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--green)}
+.chat-input-bar{
+  flex-shrink:0;padding:8px 16px;
+  background:var(--card);border-top:1px solid var(--border);
+  display:flex;gap:8px;align-items:center;
+}
+.chat-input{flex:1;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);font-size:13px;background:var(--bg);outline:none;color:var(--text)}
+.chat-input:focus{border-color:var(--primary-light)}
+.chat-send{width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chat-voice{width:36px;height:36px;border-radius:50%;background:var(--card2);border:1px solid var(--border2);color:var(--primary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* ============================================================
+   8. REMINDER PAGE
+   ============================================================ */
+.reminder-card{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:8px;
+  transition:all .2s;cursor:pointer;
+}
+.reminder-card:hover{box-shadow:var(--shadow-lg)}
+.rc-time{font-size:18px;font-weight:700;color:var(--text);width:50px;flex-shrink:0;text-align:center}
+.rc-icon{font-size:22px;flex-shrink:0}
+.rc-body{flex:1}.rc-title{font-size:13px;font-weight:500;color:var(--text)}.rc-desc{font-size:11px;color:var(--text3);margin-top:2px}
+.rc-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--border2);cursor:pointer;transition:all .2s;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.rc-check.done{background:var(--green);border-color:var(--green);color:#fff;font-size:12px}
+.rc-check.overdue{border-color:var(--red)}
+.reminder-card.overdue{border-left:3px solid var(--red)}
+.reminder-card.done{opacity:.5}
+
+/* ============================================================
+   9. MEDICATION PAGE
+   ============================================================ */
+.med-card{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:8px}
+.med-icon{font-size:26px;flex-shrink:0}
+.med-info{flex:1}.med-name{font-size:14px;font-weight:600;color:var(--text)}.med-time{font-size:11px;color:var(--text3);margin-top:2px}
+.med-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);cursor:pointer;transition:all .2s;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+.med-check.done{background:var(--green);border-color:var(--green);color:#fff}
+.med-history{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.med-day{text-align:center;font-size:10px;color:var(--text3);padding:4px 0}
+.med-cell{width:100%;aspect-ratio:1;border-radius:4px;background:var(--card2)}
+.med-cell.ok{background:rgba(90,138,90,.25)}.med-cell.late{background:rgba(196,160,58,.25)}.med-cell.miss{background:rgba(196,74,74,.2)}
+
+/* ============================================================
+   10. HEALTH PAGE
+   ============================================================ */
+.health-chart{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:10px}
+.hc-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px}
+.hc-bars{display:flex;align-items:flex-end;gap:6px;height:80px}
+.hc-bar{flex:1;border-radius:4px 4px 0 0;transition:height .3s;position:relative}
+.hc-bar .hc-val{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--text3);white-space:nowrap}
+.hc-bar .hc-lbl{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--text4)}
+.feel-btns{display:flex;gap:8px;margin-top:8px}
+.feel-btn{flex:1;padding:10px;border-radius:var(--radius-sm);background:var(--card2);text-align:center;cursor:pointer;font-size:13px;transition:all .2s;border:1px solid transparent}
+.feel-btn:hover{border-color:var(--primary-light)}
+
+/* ============================================================
+   11. SOS PAGE
+   ============================================================ */
+.sos-page{background:linear-gradient(180deg,#fff5f5,#FDF6EE);min-height:100%}
+.sos-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;border-radius:16px;cursor:pointer;transition:all .2s;gap:8px;
+}
+.sos-btn:hover{transform:scale(1.02)}
+.sos-btn .sos-icon{font-size:36px}
+.sos-btn .sos-label{font-size:14px;font-weight:600}
+.sos-btn .sos-desc{font-size:11px;opacity:.7}
+.sos-call{background:linear-gradient(135deg,#c44a4a,#d45a5a);color:#fff}
+.sos-120{background:linear-gradient(135deg,#c47a3a,#d48a4a);color:#fff}
+.sos-kunpeng{background:linear-gradient(135deg,var(--primary),#d4a55c);color:#fff}
+
+/* ============================================================
+   12. SMART HOME PAGE
+   ============================================================ */
+.room-tabs{display:flex;gap:6px;margin-bottom:12px}
+.room-tab{padding:5px 14px;border-radius:16px;font-size:12px;background:var(--card2);color:var(--text3);cursor:pointer;transition:all .2s}
+.room-tab.active{background:var(--primary);color:#fff}
+.device-card{
+  background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s;
+}
+.device-card:hover{box-shadow:var(--shadow-lg)}
+.dc-icon{font-size:28px;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dc-icon.on{background:rgba(196,135,58,.1)}.dc-icon.off{background:var(--card2)}
+.dc-info{flex:1}.dc-name{font-size:13px;font-weight:500;color:var(--text)}.dc-status{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ============================================================
+   13. CAMERA PAGE
+   ============================================================ */
+.cam-preview{background:#1a1f2a;border-radius:var(--radius);height:180px;display:flex;align-items:center;justify-content:center;color:#484f58;font-size:14px;margin-bottom:10px;position:relative;overflow:hidden}
+.cam-overlay{position:absolute;bottom:8px;right:8px;display:flex;gap:6px}
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.photo-thumb{aspect-ratio:1;border-radius:var(--radius-sm);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--text4)}
+
+/* ============================================================
+   14. SCENE MODE PAGE
+   ============================================================ */
+.scene-card{
+  padding:16px;border-radius:var(--radius);cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:14px;
+}
+.scene-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.sc-icon{font-size:32px;width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sc-info{flex:1}.sc-name{font-size:15px;font-weight:600;color:var(--text)}.sc-desc{font-size:11px;color:var(--text3);margin-top:3px;line-height:1.5}
+
+/* ============================================================
+   15. SETTINGS PAGE
+   ============================================================ */
+.setting-group{margin-bottom:16px}
+.setting-group-title{font-size:11px;color:var(--text4);letter-spacing:1px;margin-bottom:8px;text-transform:uppercase}
+.setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--card);border-radius:var(--radius-sm);margin-bottom:4px;
+}
+.sr-label{font-size:13px;color:var(--text)}.sr-value{font-size:12px;color:var(--text3)}
+.slider{width:120px;height:4px;border-radius:2px;background:var(--border2);position:relative;cursor:pointer}
+.slider-fill{height:100%;border-radius:2px;background:var(--primary)}
+.slider-thumb{position:absolute;top:-6px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);border:2px solid var(--primary)}
+
+/* ============================================================
+   16. ABOUT PAGE
+   ============================================================ */
+.about-logo{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.about-logo-icon{width:48px;height:48px;border-radius:50%;background:var(--bg2);border:2px solid var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:24px}
+.hw-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.hw-item{background:var(--card2);border-radius:var(--radius-sm);padding:10px;text-align:center}
+.hw-item .hw-status{font-size:18px;margin-bottom:2px}
+.hw-item .hw-name{font-size:11px;color:var(--text3)}
+
+/* ============================================================
+   17. HISTORY PAGE
+   ============================================================ */
+.history-date{font-size:11px;color:var(--text4);margin:10px 0 6px;letter-spacing:.5px}
+.history-item{display:flex;gap:10px;padding:8px 12px;background:var(--card);border-radius:var(--radius-sm);margin-bottom:4px;cursor:pointer}
+.hi-time{font-size:11px;color:var(--text4);flex-shrink:0;width:40px}
+.hi-text{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+
+/* ============================================================
+   18. UTILITIES
+   ============================================================ */
+.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}
+.text-center{text-align:center}
+.flex-1{flex:1}
+.page-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:14px;letter-spacing:.5px}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+<!-- ==================== BOOT SCREEN ==================== -->
+<div id="bootScreen">
+  <div class="boot-content">
+    <div class="boot-spinner">
+      <div class="boot-ring"></div>
+      <div class="boot-ring"></div>
+      <div class="boot-ring"></div>
+    </div>
+    <div class="boot-text">
+      <div class="brand">小 鲲</div>
+      <div class="brand-en">KUNPENG CORTEX</div>
+      <div class="boot-progress">
+        <div class="boot-rail"><div class="boot-fill" id="bootFill"></div></div>
+        <div class="boot-label" id="bootLabel">0%</div>
+      </div>
+      <div class="boot-status" id="bootStatus">正在唤醒小鲲...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREENSAVER ==================== -->
+<div id="screensaver" onclick="wakeUp()">
+  <div class="ss-time" id="ssTime">09:30</div>
+  <div class="ss-date" id="ssDate">2026年6月8日 星期日</div>
+  <div class="ss-reminder">🔔 下一条提醒：胰岛素注射 — 20:00</div>
+  <div class="ss-hint">轻触屏幕唤醒小鲲</div>
+</div>
+
+<!-- ==================== STATUS BAR ==================== -->
+<div id="statusBar">
+  <div class="sb-left">
+    <span id="sbTime">09:30</span>
+    <span>小鲲在线</span>
+  </div>
+  <div class="sb-right">
+    <span><span class="sb-dot"></span>WiFi</span>
+    <span>📷</span>
+    <span>🔊</span>
+  </div>
+</div>
+
+<!-- ==================== CONTENT AREA ==================== -->
+<div id="content">
+
+  <!-- ========== 1. HOME ========== -->
+  <div class="page active" id="page-home">
+    <div class="row" style="gap:16px;margin-bottom:16px">
+      <div class="home-logo">🐟</div>
+      <div style="flex:1">
+        <div class="home-greeting" id="greetingText">王大爷，早上好呀</div>
+        <div class="home-sub">今天是 2026年6月8日 星期日</div>
+      </div>
+    </div>
+
+    <div class="grid-3 mb-12">
+      <div class="env-card" style="text-align:center"><div class="env-val">26°</div><div class="env-lbl">温度</div></div>
+      <div class="env-card" style="text-align:center"><div class="env-val">60%</div><div class="env-lbl">湿度</div></div>
+      <div class="env-card" style="text-align:center"><div class="env-val">☀ 晴</div><div class="env-lbl">天气</div></div>
+    </div>
+
+    <div class="card mb-12">
+      <div class="card-title">今日摘要</div>
+      <div class="today-summary">
+        <div><span class="ts-dot" style="background:var(--green)"></span>降压药 08:00 — 已服用 ✓</div>
+        <div><span class="ts-dot" style="background:var(--yellow)"></span>胰岛素 20:00 — 待注射</div>
+        <div><span class="ts-dot" style="background:var(--primary)"></span>2 条新提醒</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="quick-btn" onclick="navigateTo('camera')"><div class="qi">📷</div>拍个照</div>
+      <div class="quick-btn" onclick="navigateTo('reminder')"><div class="qi">🔔</div>看提醒</div>
+      <div class="quick-btn" onclick="navigateTo('chat')"><div class="qi">💬</div>聊聊天</div>
+      <div class="quick-btn" onclick="navigateTo('home-device')"><div class="qi">💡</div>家居控制</div>
+    </div>
+  </div>
+
+  <!-- ========== 2. CHAT ========== -->
+  <div class="page" id="page-chat">
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-bubble ai">王大爷早上好！今天天气不错，温度26度，适合出去走走呢。</div>
+      <div class="chat-bubble user">帮我把客厅的灯开一下</div>
+      <div class="chat-bubble ai">好的，我来帮您开灯。<div class="hw-card">✅ 客厅主灯已打开</div></div>
+      <div class="chat-bubble user">拍张照片看看</div>
+      <div class="chat-bubble ai">好的，照片拍好了。我看到画面里是客厅，沙发上的靠垫摆得很整齐，茶几上放着您的茶杯，地面很干净呢。</div>
+      <div class="chat-bubble user">今天吃药了吗</div>
+      <div class="chat-bubble ai">让我帮您看看——降压药今天早上8点已经按时吃了 ✓ 胰岛素晚上8点还有一次，到时候我会提醒您的，放心！</div>
+    </div>
+    <div class="chat-input-bar">
+      <button class="chat-voice" title="语音">🎙</button>
+      <input class="chat-input" id="chatInput" placeholder="和小鲲说句话..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="chat-send" onclick="sendChat()" title="发送">➤</button>
+    </div>
+  </div>
+
+  <!-- ========== 3. REMINDER (Hub) ========== -->
+  <div class="page" id="page-reminder">
+    <div class="sub-tabs">
+      <div class="sub-tab active" onclick="switchSub('reminder','today')">今日提醒</div>
+      <div class="sub-tab" onclick="switchSub('reminder','meds')">用药管理</div>
+      <div class="sub-tab" onclick="switchSub('reminder','health')">健康数据</div>
+      <div class="sub-tab" onclick="switchSub('reminder','sos')">紧急联系</div>
+    </div>
+
+    <!-- 3a. Today Reminders -->
+    <div class="sub-page active" id="sub-reminder-today">
+      <div class="reminder-card done">
+        <div class="rc-time">08:00</div>
+        <div class="rc-icon">💊</div>
+        <div class="rc-body"><div class="rc-title">服用降压药</div><div class="rc-desc">客厅茶几抽屉 · 已完成</div></div>
+        <div class="rc-check done">✓</div>
+      </div>
+      <div class="reminder-card done">
+        <div class="rc-time">08:00</div>
+        <div class="rc-icon">💉</div>
+        <div class="rc-body"><div class="rc-title">注射胰岛素（早）</div><div class="rc-desc">冰箱保鲜层 · 已完成</div></div>
+        <div class="rc-check done">✓</div>
+      </div>
+      <div class="reminder-card">
+        <div class="rc-time">14:00</div>
+        <div class="rc-icon">🚶</div>
+        <div class="rc-body"><div class="rc-title">午后散步</div><div class="rc-desc">小区花园 · 建议30分钟</div></div>
+        <div class="rc-check" onclick="this.classList.toggle('done');this.textContent=this.classList.contains('done')?'✓':''"></div>
+      </div>
+      <div class="reminder-card">
+        <div class="rc-time">17:00</div>
+        <div class="rc-icon">📞</div>
+        <div class="rc-body"><div class="rc-title">儿子回电话</div><div class="rc-desc">约好下午通话</div></div>
+        <div class="rc-check" onclick="this.classList.toggle('done');this.textContent=this.classList.contains('done')?'✓':''"></div>
+      </div>
+      <div class="reminder-card">
+        <div class="rc-time">20:00</div>
+        <div class="rc-icon">💉</div>
+        <div class="rc-body"><div class="rc-title">注射胰岛素（晚）</div><div class="rc-desc">冰箱保鲜层</div></div>
+        <div class="rc-check" onclick="this.classList.toggle('done');this.textContent=this.classList.contains('done')?'✓':''"></div>
+      </div>
+    </div>
+
+    <!-- 3b. Medication -->
+    <div class="sub-page" id="sub-reminder-meds">
+      <div class="card-title mb-8">今日用药</div>
+      <div class="med-card">
+        <div class="med-icon">💊</div>
+        <div class="med-info"><div class="med-name">降压药</div><div class="med-time">早 08:00 · 客厅茶几抽屉</div></div>
+        <div class="med-check done" onclick="this.classList.toggle('done');this.textContent=this.classList.contains('done')?'✓':''">✓</div>
+      </div>
+      <div class="med-card">
+        <div class="med-icon">💉</div>
+        <div class="med-info"><div class="med-name">胰岛素（早）</div><div class="med-time">早 08:00 · 冰箱保鲜层</div></div>
+        <div class="med-check done" onclick="this.classList.toggle('done');this.textContent=this.classList.contains('done')?'✓':''">✓</div>
+      </div>
+      <div class="med-card">
+        <div class="med-icon">💉</div>
+        <div class="med-info"><div class="med-name">胰岛素（晚）</div><div class="med-time">晚 20:00 · 冰箱保鲜层</div></div>
+        <div class="med-check" onclick="this.classList.toggle('done');this.textContent=this.classList.contains('done')?'✓':''"></div>
+      </div>
+
+      <div class="card mt-12">
+        <div class="card-title">近 7 天服药记录</div>
+        <div class="med-history">
+          <div class="med-day">周一</div><div class="med-day">周二</div><div class="med-day">周三</div><div class="med-day">周四</div><div class="med-day">周五</div><div class="med-day">周六</div><div class="med-day" style="color:var(--primary);font-weight:600">今天</div>
+          <div class="med-cell ok"></div><div class="med-cell ok"></div><div class="med-cell ok"></div><div class="med-cell late"></div><div class="med-cell ok"></div><div class="med-cell ok"></div><div class="med-cell ok"></div>
+          <div class="med-cell ok"></div><div class="med-cell ok"></div><div class="med-cell late"></div><div class="med-cell ok"></div><div class="med-cell ok"></div><div class="med-cell miss"></div><div class="med-cell ok"></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:var(--text4)">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(90,138,90,.4);vertical-align:middle;margin-right:3px"></span>按时</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(196,160,58,.4);vertical-align:middle;margin-right:3px"></span>延迟</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(196,74,74,.35);vertical-align:middle;margin-right:3px"></span>漏服</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3c. Health Data -->
+    <div class="sub-page" id="sub-reminder-health">
+      <div class="health-chart">
+        <div class="hc-title">血压趋势（近 7 天）</div>
+        <div class="hc-bars">
+          <div class="hc-bar" style="height:70%;background:linear-gradient(180deg,var(--primary),var(--primary-light))"><span class="hc-val">138</span><span class="hc-lbl">周一</span></div>
+          <div class="hc-bar" style="height:65%;background:linear-gradient(180deg,var(--primary),var(--primary-light))"><span class="hc-val">135</span><span class="hc-lbl">周二</span></div>
+          <div class="hc-bar" style="height:60%;background:linear-gradient(180deg,var(--green),#8cb89c)"><span class="hc-val">130</span><span class="hc-lbl">周三</span></div>
+          <div class="hc-bar" style="height:68%;background:linear-gradient(180deg,var(--primary),var(--primary-light))"><span class="hc-val">136</span><span class="hc-lbl">周四</span></div>
+          <div class="hc-bar" style="height:55%;background:linear-gradient(180deg,var(--green),#8cb89c)"><span class="hc-val">128</span><span class="hc-lbl">周五</span></div>
+          <div class="hc-bar" style="height:62%;background:linear-gradient(180deg,var(--green),#8cb89c)"><span class="hc-val">132</span><span class="hc-lbl">周六</span></div>
+          <div class="hc-bar" style="height:58%;background:linear-gradient(180deg,var(--green),#8cb89c)"><span class="hc-val">129</span><span class="hc-lbl" style="color:var(--primary);font-weight:600">今天</span></div>
+        </div>
+      </div>
+
+      <div class="health-chart">
+        <div class="hc-title">血糖趋势（近 7 天）</div>
+        <div class="hc-bars">
+          <div class="hc-bar" style="height:60%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hc-val">6.8</span><span class="hc-lbl">周一</span></div>
+          <div class="hc-bar" style="height:55%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hc-val">6.5</span><span class="hc-lbl">周二</span></div>
+          <div class="hc-bar" style="height:70%;background:linear-gradient(180deg,var(--yellow),#d4c080)"><span class="hc-val">7.2</span><span class="hc-lbl">周三</span></div>
+          <div class="hc-bar" style="height:50%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hc-val">6.2</span><span class="hc-lbl">周四</span></div>
+          <div class="hc-bar" style="height:58%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hc-val">6.6</span><span class="hc-lbl">周五</span></div>
+          <div class="hc-bar" style="height:52%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hc-val">6.3</span><span class="hc-lbl">周六</span></div>
+          <div class="hc-bar" style="height:56%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hc-val">6.5</span><span class="hc-lbl" style="color:var(--primary);font-weight:600">今天</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">今天感觉怎么样？</div>
+        <div class="feel-btns">
+          <div class="feel-btn" onclick="this.style.borderColor='var(--green)';this.style.background='rgba(90,138,90,.08)'">😊 挺好的</div>
+          <div class="feel-btn" onclick="this.style.borderColor='var(--yellow)';this.style.background='rgba(196,160,58,.08)'">😐 一般般</div>
+          <div class="feel-btn" onclick="this.style.borderColor='var(--red)';this.style.background='rgba(196,74,74,.08)'">😔 不太好</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3d. SOS -->
+    <div class="sub-page sos-page" id="sub-reminder-sos">
+      <div class="grid-3" style="margin-top:20px">
+        <div class="sos-btn sos-call" onclick="alert('正在呼叫儿子...')">
+          <div class="sos-icon">📞</div>
+          <div class="sos-label">呼叫儿子</div>
+          <div class="sos-desc">138****1234</div>
+        </div>
+        <div class="sos-btn sos-120" onclick="alert('正在拨打120急救...')">
+          <div class="sos-icon">🚑</div>
+          <div class="sos-label">急救 120</div>
+          <div class="sos-desc">紧急医疗救援</div>
+        </div>
+        <div class="sos-btn sos-kunpeng" onclick="alert('小鲲紧急模式已启动，正在检测周围环境...')">
+          <div class="sos-icon">🐟</div>
+          <div class="sos-label">小鲲紧急</div>
+          <div class="sos-desc">摔倒检测 + 自动报警</div>
+        </div>
+      </div>
+      <div class="card mt-12 text-center" style="color:var(--text3);font-size:12px;line-height:1.8">
+        遇到紧急情况请保持冷静<br>小鲲会一直陪着您
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 4. SMART HOME (Hub) ========== -->
+  <div class="page" id="page-home-ctrl">
+    <div class="sub-tabs">
+      <div class="sub-tab active" onclick="switchSub('home','device')">设备控制</div>
+      <div class="sub-tab" onclick="switchSub('home','camera')">摄像头</div>
+      <div class="sub-tab" onclick="switchSub('home','scene')">情景模式</div>
+    </div>
+
+    <!-- 4a. Devices -->
+    <div class="sub-page active" id="sub-home-device">
+      <div class="room-tabs">
+        <div class="room-tab active" onclick="switchRoom(this,'客厅')">客厅</div>
+        <div class="room-tab" onclick="switchRoom(this,'卧室')">卧室</div>
+        <div class="room-tab" onclick="switchRoom(this,'厨房')">厨房</div>
+      </div>
+
+      <div id="room-客厅" class="room-content">
+        <div class="grid-2">
+          <div class="device-card" onclick="toggleDevice(this)">
+            <div class="dc-icon on">💡</div>
+            <div class="dc-info"><div class="dc-name">主灯</div><div class="dc-status text-green">已开启 · 70%</div></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="device-card" onclick="toggleDevice(this)">
+            <div class="dc-icon off">🕯</div>
+            <div class="dc-info"><div class="dc-name">氛围灯</div><div class="dc-status">已关闭</div></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="device-card" onclick="toggleDevice(this)">
+            <div class="dc-icon on">📷</div>
+            <div class="dc-info"><div class="dc-name">摄像头</div><div class="dc-status text-green">在线</div></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="device-card" onclick="toggleDevice(this)">
+            <div class="dc-icon off">🤖</div>
+            <div class="dc-info"><div class="dc-name">机械臂</div><div class="dc-status">待机中</div></div>
+            <div class="toggle"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="room-卧室" class="room-content" style="display:none">
+        <div class="grid-2">
+          <div class="device-card" onclick="toggleDevice(this)">
+            <div class="dc-icon off">💡</div>
+            <div class="dc-info"><div class="dc-name">卧室灯</div><div class="dc-status">已关闭</div></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="device-card" onclick="toggleDevice(this)">
+            <div class="dc-icon off">🌙</div>
+            <div class="dc-info"><div class="dc-name">夜灯</div><div class="dc-status">已关闭</div></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="device-card" onclick="toggleDevice(this)">
+            <div class="dc-icon on">🌡</div>
+            <div class="dc-info"><div class="dc-name">床头传感器</div><div class="dc-status text-green">正常 · 25.5°</div></div>
+            <div class="toggle on"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="room-厨房" class="room-content" style="display:none">
+        <div class="grid-2">
+          <div class="device-card" onclick="toggleDevice(this)">
+            <div class="dc-icon on">🔥</div>
+            <div class="dc-info"><div class="dc-name">燃气传感器</div><div class="dc-status text-green">正常</div></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="device-card" onclick="toggleDevice(this)">
+            <div class="dc-icon on">🌡</div>
+            <div class="dc-info"><div class="dc-name">温湿度传感器</div><div class="dc-status text-green">28° · 55%</div></div>
+            <div class="toggle on"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4b. Camera -->
+    <div class="sub-page" id="sub-home-camera">
+      <div class="cam-preview">
+        <span>📷 实时画面预览</span>
+        <div class="cam-overlay">
+          <button class="btn btn-primary" style="padding:6px 14px;font-size:11px" onclick="alert('拍照成功！')">拍照</button>
+          <button class="btn btn-outline" style="padding:6px 14px;font-size:11px;color:#58a6ff;border-color:rgba(88,166,255,.3)" onclick="alert('小鲲正在分析画面...')">让小鲲看看</button>
+        </div>
+      </div>
+      <div class="card-title mb-8">最近照片</div>
+      <div class="photo-grid">
+        <div class="photo-thumb">📸</div>
+        <div class="photo-thumb">📸</div>
+        <div class="photo-thumb">📸</div>
+        <div class="photo-thumb" style="border:2px dashed var(--border2);background:transparent;font-size:18px">+</div>
+      </div>
+    </div>
+
+    <!-- 4c. Scene Mode -->
+    <div class="sub-page" id="sub-home-scene">
+      <div class="scene-card card mb-8" onclick="alert('起床模式已启动：卧室灯渐亮中...')" style="border-left:3px solid var(--primary)">
+        <div class="sc-icon" style="background:rgba(196,135,58,.1)">🌅</div>
+        <div class="sc-info"><div class="sc-name">起床模式</div><div class="sc-desc">卧室灯从 10% 渐亮到 70%，播放轻音乐</div></div>
+      </div>
+      <div class="scene-card card mb-8" onclick="alert('睡觉模式已启动：正在关闭所有灯...')" style="border-left:3px solid var(--blue)">
+        <div class="sc-icon" style="background:rgba(90,122,196,.1)">🌙</div>
+        <div class="sc-info"><div class="sc-name">睡觉模式</div><div class="sc-desc">关闭所有灯，卧室留夜灯 10%</div></div>
+      </div>
+      <div class="scene-card card mb-8" onclick="alert('出门模式已启动：所有设备已关闭，摄像头已开启')" style="border-left:3px solid var(--green)">
+        <div class="sc-icon" style="background:rgba(90,138,90,.1)">🚪</div>
+        <div class="sc-info"><div class="sc-name">出门模式</div><div class="sc-desc">关闭所有灯和设备，开启摄像头监控</div></div>
+      </div>
+      <div class="scene-card card" onclick="alert('回家模式已启动：客厅灯已打开')" style="border-left:3px solid var(--yellow)">
+        <div class="sc-icon" style="background:rgba(196,160,58,.1)">🏠</div>
+        <div class="sc-info"><div class="sc-name">回家模式</div><div class="sc-desc">打开客厅主灯，关闭摄像头监控</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 5. SETTINGS (Hub) ========== -->
+  <div class="page" id="page-settings">
+    <div class="sub-tabs">
+      <div class="sub-tab active" onclick="switchSub('settings','personal')">个人设置</div>
+      <div class="sub-tab" onclick="switchSub('settings','device')">设备设置</div>
+      <div class="sub-tab" onclick="switchSub('settings','about')">关于系统</div>
+    </div>
+
+    <!-- 5a. Personal -->
+    <div class="sub-page active" id="sub-settings-personal">
+      <div class="setting-group">
+        <div class="setting-group-title">个人信息</div>
+        <div class="setting-row"><span class="sr-label">姓名</span><span class="sr-value">王大爷</span></div>
+        <div class="setting-row"><span class="sr-label">年龄</span><span class="sr-value">75 岁</span></div>
+        <div class="setting-row"><span class="sr-label">居住状况</span><span class="sr-value">独居</span></div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-group-title">紧急联系人</div>
+        <div class="setting-row"><span class="sr-label">儿子</span><span class="sr-value">138****1234</span></div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-group-title">用药时间</div>
+        <div class="setting-row"><span class="sr-label">降压药</span><span class="sr-value">每天 08:00</span></div>
+        <div class="setting-row"><span class="sr-label">胰岛素（早）</span><span class="sr-value">每天 08:00</span></div>
+        <div class="setting-row"><span class="sr-label">胰岛素（晚）</span><span class="sr-value">每天 20:00</span></div>
+      </div>
+      <div class="card text-center mt-8" style="font-size:12px;color:var(--text3)">
+        <div style="font-size:28px;margin-bottom:4px">📱</div>
+        家属可扫描二维码远程修改设置
+      </div>
+    </div>
+
+    <!-- 5b. Device Settings -->
+    <div class="sub-page" id="sub-settings-device">
+      <div class="setting-group">
+        <div class="setting-group-title">声音</div>
+        <div class="setting-row">
+          <span class="sr-label">音量</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="text-sm text-muted">🔈</span>
+            <div class="slider"><div class="slider-fill" style="width:70%"></div><div class="slider-thumb" style="left:calc(70% - 8px)"></div></div>
+            <span class="text-sm">70%</span>
+          </div>
+        </div>
+        <div class="setting-row"><span class="sr-label">语音语速</span><span class="sr-value">慢速</span></div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-group-title">显示</div>
+        <div class="setting-row">
+          <span class="sr-label">屏幕亮度</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="text-sm text-muted">🔅</span>
+            <div class="slider"><div class="slider-fill" style="width:60%"></div><div class="slider-thumb" style="left:calc(60% - 8px)"></div></div>
+            <span class="text-sm">60%</span>
+          </div>
+        </div>
+        <div class="setting-row"><span class="sr-label">屏保时间</span><span class="sr-value">5 分钟</span></div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-group-title">网络</div>
+        <div class="setting-row"><span class="sr-label">WiFi</span><span class="sr-value text-green">已连接 · 信号良好</span></div>
+        <div class="setting-row"><span class="sr-label">方言适配</span><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+
+    <!-- 5c. About -->
+    <div class="sub-page" id="sub-settings-about">
+      <div class="about-logo">
+        <div class="about-logo-icon">🐟</div>
+        <div>
+          <div style="font-size:18px;font-weight:600;letter-spacing:2px">小 鲲</div>
+          <div style="font-size:11px;color:var(--text3);letter-spacing:1px">KUNPENG CORTEX v2.0</div>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-group-title">系统信息</div>
+        <div class="setting-row"><span class="sr-label">设备</span><span class="sr-value">OrangePi Kunpeng Pro</span></div>
+        <div class="setting-row"><span class="sr-label">芯片</span><span class="sr-value">RK3588 · 8核 ARM64</span></div>
+        <div class="setting-row"><span class="sr-label">系统</span><span class="sr-value">openEuler 22.03</span></div>
+        <div class="setting-row"><span class="sr-label">内存</span><span class="sr-value">16 GB</span></div>
+        <div class="setting-row"><span class="sr-label">运行时长</span><span class="sr-value" id="uptimeVal">3 天 12 小时</span></div>
+      </div>
+
+      <div class="card-title mb-8">硬件状态</div>
+      <div class="hw-grid">
+        <div class="hw-item"><div class="hw-status">✅</div><div class="hw-name">摄像头</div></div>
+        <div class="hw-item"><div class="hw-status">✅</div><div class="hw-name">GPIO</div></div>
+        <div class="hw-item"><div class="hw-status">✅</div><div class="hw-name">I2C · 10总线</div></div>
+        <div class="hw-item"><div class="hw-status">✅</div><div class="hw-name">UART · 6端口</div></div>
+        <div class="hw-item"><div class="hw-status">✅</div><div class="hw-name">SPI</div></div>
+        <div class="hw-item"><div class="hw-status">❌</div><div class="hw-name">NPU · 待驱动</div></div>
+      </div>
+
+      <div class="setting-group mt-12">
+        <div class="setting-group-title">能力</div>
+        <div class="setting-row"><span class="sr-label">已加载 Skill</span><span class="sr-value">3 个</span></div>
+        <div class="setting-row"><span class="sr-label">记忆条目</span><span class="sr-value">12 条</span></div>
+        <div class="setting-row"><span class="sr-label">AI 引擎</span><span class="sr-value">Kimi k2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== HISTORY (sub of chat) ========== -->
+  <div class="page" id="page-history">
+    <div class="page-title">历史会话</div>
+    <div class="history-date">今天 · 6月8日</div>
+    <div class="history-item"><span class="hi-time">09:15</span><span class="hi-text">帮我把客厅的灯开一下</span></div>
+    <div class="history-item"><span class="hi-time">09:12</span><span class="hi-text">拍张照片看看</span></div>
+    <div class="history-item"><span class="hi-time">08:30</span><span class="hi-text">今天吃药了吗</span></div>
+    <div class="history-date">昨天 · 6月7日</div>
+    <div class="history-item"><span class="hi-time">20:05</span><span class="hi-text">晚安，帮我关灯</span></div>
+    <div class="history-item"><span class="hi-time">17:30</span><span class="hi-text">给儿子打个电话</span></div>
+    <div class="history-item"><span class="hi-time">14:20</span><span class="hi-text">今天天气怎么样</span></div>
+    <div class="history-item"><span class="hi-time">08:10</span><span class="hi-text">早上好</span></div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- ==================== BOTTOM NAV ==================== -->
+<div id="bottomNav">
+  <div class="nav-item active" onclick="navigateTo('home')">
+    <span class="nav-icon">🏠</span><span>首页</span>
+  </div>
+  <div class="nav-item" onclick="navigateTo('chat')">
+    <span class="nav-icon">💬</span><span>会话</span>
+  </div>
+  <div class="nav-item" onclick="navigateTo('reminder')">
+    <span class="nav-icon">🔔</span><span>提醒</span>
+  </div>
+  <div class="nav-item" onclick="navigateTo('home-ctrl')">
+    <span class="nav-icon">🏡</span><span>家居</span>
+  </div>
+  <div class="nav-item" onclick="navigateTo('settings')">
+    <span class="nav-icon">⚙</span><span>设置</span>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   BOOT SEQUENCE
+   ============================================================ */
+const bootPhases = [
+  {pct:15, text:'正在唤醒小鲲...'},
+  {pct:40, text:'加载记忆与技能...'},
+  {pct:65, text:'连接硬件模块...'},
+  {pct:85, text:'初始化完成，准备就绪'},
+  {pct:100,text:'小鲲已就绪 ✦'},
+];
+let bootCur=0, bootIdx=0;
+function bootTick(){
+  if(bootCur>=100){setTimeout(()=>{document.getElementById('bootScreen').classList.add('hide')},400);return}
+  bootCur+=Math.random()*4+2;if(bootCur>100)bootCur=100;
+  document.getElementById('bootFill').style.width=bootCur+'%';
+  document.getElementById('bootLabel').textContent=Math.round(bootCur)+'%';
+  while(bootIdx<bootPhases.length&&bootCur>=bootPhases[bootIdx].pct){
+    document.getElementById('bootStatus').textContent=bootPhases[bootIdx].text;bootIdx++;
+  }
+  if(bootCur<100)setTimeout(bootTick,150+Math.random()*200);
+  else setTimeout(()=>{document.getElementById('bootScreen').classList.add('hide')},500);
+}
+bootTick();
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const navMap={'home':'page-home','chat':'page-chat','reminder':'page-reminder',
+  'home-ctrl':'page-home-ctrl','settings':'page-settings',
+  'camera':'page-home-ctrl','history':'page-history'};
+const navTab={'home':0,'chat':1,'reminder':2,'home-ctrl':3,'settings':4,'camera':3,'history':1};
+
+function navigateTo(name){
+  // hide all pages
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  // show target
+  const target=document.getElementById(navMap[name]);
+  if(target)target.classList.add('active');
+  // update nav highlight
+  const tabIdx=navTab[name];
+  document.querySelectorAll('.nav-item').forEach((n,i)=>{
+    n.classList.toggle('active',i===tabIdx);
+  });
+  // if camera, switch to camera sub-tab
+  if(name==='camera'){
+    switchSub('home','camera');
+    document.querySelectorAll('#page-home-ctrl .sub-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('#page-home-ctrl .sub-tab')[1].classList.add('active');
+  }
+  resetScreensaver();
+}
+
+/* ============================================================
+   SUB-TABS
+   ============================================================ */
+function switchSub(module, tab){
+  const page=document.getElementById('page-'+({'reminder':'reminder','home':'home-ctrl','settings':'settings'}[module]||module));
+  if(!page)return;
+  page.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+  page.querySelectorAll('.sub-page').forEach(p=>p.classList.remove('active'));
+  // find and activate
+  const tabs=page.querySelectorAll('.sub-tab');
+  const subs=page.querySelectorAll('.sub-page');
+  const tabNames={'reminder':['today','meds','health','sos'],'home':['device','camera','scene'],'settings':['personal','device','about']};
+  const idx=(tabNames[module]||[]).indexOf(tab);
+  if(idx>=0&&tabs[idx]){tabs[idx].classList.add('active');if(subs[idx])subs[idx].classList.add('active')}
+  resetScreensaver();
+}
+
+/* ============================================================
+   ROOM SWITCHING
+   ============================================================ */
+function switchRoom(el, room){
+  el.parentElement.querySelectorAll('.room-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.room-content').forEach(r=>r.style.display='none');
+  const target=document.getElementById('room-'+room);
+  if(target)target.style.display='block';
+}
+
+/* ============================================================
+   DEVICE TOGGLE
+   ============================================================ */
+function toggleDevice(card){
+  const toggle=card.querySelector('.toggle');
+  const icon=card.querySelector('.dc-icon');
+  const status=card.querySelector('.dc-status');
+  const isOn=toggle.classList.toggle('on');
+  icon.classList.toggle('on',isOn);
+  icon.classList.toggle('off',!isOn);
+  if(isOn){status.textContent='已开启';status.className='dc-status text-green'}
+  else{status.textContent='已关闭';status.className='dc-status'}
+}
+
+/* ============================================================
+   CHAT
+   ============================================================ */
+function sendChat(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();if(!text)return;
+  const msgs=document.getElementById('chatMessages');
+  // user bubble
+  const userDiv=document.createElement('div');userDiv.className='chat-bubble user';userDiv.textContent=text;
+  msgs.appendChild(userDiv);
+  input.value='';
+  // simulate AI reply
+  setTimeout(()=>{
+    const aiDiv=document.createElement('div');aiDiv.className='chat-bubble ai';
+    // simple keyword matching for demo
+    const low=text.toLowerCase();
+    if(/灯|开灯|关灯/.test(low)){
+      aiDiv.innerHTML='好的，我来帮您操作。<div class="hw-card">✅ 灯光已控制</div>';
+    }else if(/拍|照/.test(low)){
+      aiDiv.textContent='好的，照片拍好了。画面里是客厅，一切都很整齐呢。';
+    }else if(/药|吃/.test(low)){
+      aiDiv.textContent='降压药今早8点已经吃了 ✓ 胰岛素晚上8点还有一次，到时候我提醒您！';
+    }else if(/天气|温度/.test(low)){
+      aiDiv.textContent='今天天气晴朗，温度26度，湿度60%，很适合出去走走呢。';
+    }else if(/你好|早上好|晚上好/.test(low)){
+      aiDiv.textContent='您好呀！今天感觉怎么样？有什么需要我帮忙的吗？';
+    }else{
+      aiDiv.textContent='好的，我明白了。还有什么需要我帮您的吗？';
+    }
+    msgs.appendChild(aiDiv);
+    msgs.scrollTop=msgs.scrollHeight;
+  },600);
+  msgs.scrollTop=msgs.scrollHeight;
+  resetScreensaver();
+}
+
+/* ============================================================
+   SCREENSAVER
+   ============================================================ */
+let ssTimer=null;
+function resetScreensaver(){
+  clearTimeout(ssTimer);
+  document.getElementById('screensaver').classList.remove('show');
+  ssTimer=setTimeout(showScreensaver,5*60*1000);// 5 min
+}
+function showScreensaver(){
+  updateSSTime();
+  document.getElementById('screensaver').classList.add('show');
+}
+function wakeUp(){
+  document.getElementById('screensaver').classList.remove('show');
+  resetScreensaver();
+}
+function updateSSTime(){
+  const now=new Date();
+  document.getElementById('ssTime').textContent=
+    String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const days=['日','一','二','三','四','五','六'];
+  document.getElementById('ssDate').textContent=
+    now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日 星期'+days[now.getDay()];
+}
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+function updateClock(){
+  const now=new Date();
+  const t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('sbTime').textContent=t;
+  // greeting
+  const h=now.getHours();
+  let g='您好呀';
+  if(h<6)g='夜深了，注意休息';
+  else if(h<11)g='早上好呀';
+  else if(h<14)g='中午好，吃午饭了吗';
+  else if(h<18)g='下午好呀';
+  else g='晚上好呀';
+  document.getElementById('greetingText').textContent='王大爷，'+g;
+}
+updateClock();setInterval(updateClock,30000);
+
+// init screensaver timer
+resetScreensaver();
+</script>
+</body>
+</html>

@@ -1,14 +1,16 @@
-# KunPeng-Hermes Fusion
+# KunPeng-Hermes Fusion v2.2
 
 **自进化硬件控制智能体** — OrangePi Kunpeng Pro (RK3588) 上的养老家居 AI 助手
 
 [![Gitee](https://img.shields.io/badge/Gitee-start__company-red)](https://gitee.com/zhao-yuhang11234/start_company)
+[![Version](https://img.shields.io/badge/version-v2.2-blue)]()
+[![Tests](https://img.shields.io/badge/tests-14%2F14-brightgreen)]()
 
 ---
 
 ## 什么是 KunPeng-Hermes Fusion？
 
-将 **KunPeng-Cortex 硬件控制能力** 与 **Hermes Agent 自进化学习能力** 融合，打造"会学习的硬件控制智能体"。
+将 **KunPeng-Cortex 硬件控制能力** 与 **Hermes Agent 自进化学习能力** 融合，打造"会学习的硬件控制智能体"。v2.2 新增**声纹识别 + 全双工语音交互 + Web 桌宠**。
 
 ```
 每次完成一次硬件任务 → 自动学习 → 生成可复用 Skill → 下次直接复用（2-3x 更快）
@@ -22,6 +24,10 @@
 | 🧠 **三层记忆系统** | Hermes | MEMORY.md（环境）+ USER.md（用户画像）+ SQLite FTS5（会话搜索） |
 | 🔄 **自进化引擎** | Hermes | 每15任务自检，成功率<70%自动重写 Skill，Token 降低60% |
 | 📷 **真实视觉识别** | Kimi k2 | 真实摄像头拍照 + AI 图像描述（非编造） |
+| 🎤 **声纹识别** | CAM++ | 192维声纹向量，识别"谁在说话"，新用户自动待定注册 |
+| 🗣️ **语音交互** | sherpa-onnx + SenseVoice | 唤醒词"小鲲小鲲"/"你好小鲲"（拼音模糊匹配），全链路本地 ASR |
+| 📋 **Memos 智能笔记** | Fusion | 自动分类/打标签/用户画像，客户需求追踪 |
+| 🖥️ **Web 桌宠** | FastAPI | 隐私安全 HMI，浏览器访问桌面宠物，工具调用（提醒/设备/小车/机械臂） |
 | ⚡ **硬件控制** | KunPeng | GPIO/I2C/UART/PWM/摄像头/机械臂，<50ms 响应 |
 | 💬 **情感关怀** | KunPeng | 中文情感计算 + 老年用户文化适配 |
 | 🔒 **防编造机制** | Fusion | Frozen Snapshot 注入真实硬件状态，禁止模型虚构任何结果 |
@@ -32,18 +38,44 @@
 
 | 硬件 | 状态 | 设备 |
 |------|------|------|
-| 摄像头 | ✅ | /dev/video0, /dev/video1 |
+| 摄像头 | ✅ | /dev/video0 (Aveo SP2820W) |
+| 四通道麦克风 | ✅ | HK MIC USB-Audio (2ch@48k→16k mono) |
+| USB 扬声器 | ✅ | hw:0,0 (TTS 语音播报) |
 | GPIO | ✅ | libgpiod |
 | I2C | ✅ | 10 条总线 |
-| UART | ✅ | 6 端口 |
+| UART | ✅ | 6 端口 (含 FT2232×2) |
 | NPU | ❌ | 待驱动 |
 
 ## 快速开始
 
+### 语音交互（推荐）
+
 ```bash
-cd /home/openEuler/agent_xia/start_company
-bash start_fusion.sh              # Kimi API（支持视觉识别）
-API=deepseek bash start_fusion.sh  # DeepSeek（纯文本）
+git clone https://gitee.com/zhao-yuhang11234/start_company.git
+cd start_company
+./start_voice.sh
+```
+
+对着四通道麦克风说 **"小鲲小鲲"** 唤醒，然后说指令。系统会：
+1. 声纹识别"你是谁"（注册过的用户自动识别）
+2. ASR 转写你的指令
+3. v2.0 智能体决策并回复
+4. 扬声器 TTS 播报
+
+新用户说几句话后输入 `/enroll 王大爷` 注册声纹。
+
+### 对话终端
+
+```bash
+./start_fusion.sh              # Kimi API（支持视觉识别）
+API=deepseek ./start_fusion.sh  # DeepSeek（纯文本）
+```
+
+### Web 桌宠
+
+```bash
+./start_web.sh
+# 浏览器访问 http://<板子IP>:8765/companion
 ```
 
 ### 交互命令

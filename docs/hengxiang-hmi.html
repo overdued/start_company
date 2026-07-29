@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800, initial-scale=1.0">
+<title>小鲲 · hengxiang.HMI 原型</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  background:var(--bg);color:#2c2416;user-select:none}
+
+:root{
+  --bg:#FDF6EE;--bg2:#F5EBDE;--card:#FFF8F0;--card2:#FAF6EF;
+  --pri:#C4873A;--pri-l:#E8C9A0;--pri-d:#A06A28;
+  --tx:#2C2416;--tx2:#5C4F3B;--tx3:#8C7A5E;--tx4:#B8A88A;
+  --bd:#F0EBE0;--bd2:#E8DFD0;
+  --ok:#5A8A5A;--warn:#C4A03A;--err:#C44A4A;--blue:#5A7AC4;
+  --r:12px;--rs:8px;
+  --sh:0 2px 12px rgba(0,0,0,.05);
+}
+
+#app{width:100%;height:100%;position:relative;overflow:hidden;background:var(--bg)}
+
+/* ── Boot ── */
+#boot{position:absolute;inset:0;z-index:1000;
+  background:linear-gradient(135deg,#FDF6EE,#F5EBDE,#EDE0CE);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  transition:opacity .6s}
+#boot.hide{opacity:0;pointer-events:none}
+.boot-in{display:flex;align-items:center;gap:48px}
+.boot-spin{width:140px;height:140px;position:relative}
+.boot-spin i{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;animation:sp 1.6s linear infinite}
+.boot-spin i:nth-child(1){border-top-color:#C4873A;border-right-color:rgba(200,135,58,.3)}
+.boot-spin i:nth-child(2){inset:12px;animation:sp 2.2s linear infinite reverse;border-top-color:#C4873A;border-right-color:rgba(200,135,58,.3)}
+.boot-spin i:nth-child(3){inset:24px;animation:sp 3s linear infinite;border-width:2px;border-top-color:rgba(200,160,110,.35)}
+@keyframes sp{to{transform:rotate(360deg)}}
+.boot-txt .br{font-size:34px;font-weight:600;letter-spacing:6px;color:var(--tx)}
+.boot-txt .en{font-size:12px;letter-spacing:4px;color:var(--tx3)}
+.boot-bar{display:flex;align-items:center;gap:12px;margin-top:8px}
+.boot-rail{width:200px;height:4px;border-radius:4px;background:rgba(200,160,110,.15);overflow:hidden}
+.boot-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#C4873A,#D4A55C);width:0%;transition:width .3s}
+.boot-lbl{font-size:12px;color:var(--tx3);letter-spacing:2px}
+.boot-st{font-size:12px;color:var(--tx4);letter-spacing:2px;margin-top:4px}
+
+/* ── Status Bar ── */
+#sbar{position:absolute;top:0;left:0;right:0;height:24px;z-index:100;
+  background:rgba(253,246,238,.95);display:flex;align-items:center;
+  justify-content:space-between;padding:0 16px;font-size:11px;color:var(--tx3);
+  border-bottom:1px solid var(--bd)}
+.sb-r{display:flex;gap:10px;align-items:center}
+.sb-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:3px}
+
+/* ── Bottom Nav ── */
+#bnav{position:absolute;bottom:0;left:0;right:0;height:44px;z-index:100;
+  background:var(--card);border-top:1px solid var(--bd);
+  display:flex;align-items:center}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;
+  font-size:10px;color:var(--tx4);cursor:pointer;padding:6px 0;transition:color .2s}
+.ni.active{color:var(--pri);font-weight:600}
+.ni .nic{font-size:16px;line-height:1}
+
+/* ── Pages ── */
+#content{position:absolute;top:24px;bottom:44px;left:0;right:0;overflow:hidden}
+.pg{display:none;position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:12px 16px;scrollbar-width:none}
+.pg::-webkit-scrollbar{display:none}
+.pg.active{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── Shared ── */
+.card{background:var(--card);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);margin-bottom:8px}
+.card-t{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:6px;letter-spacing:.3px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+
+/* Sub tabs */
+.stabs{display:flex;gap:4px;margin-bottom:10px}
+.stab{padding:4px 12px;border-radius:14px;font-size:11px;color:var(--tx3);
+  background:var(--card2);cursor:pointer;transition:all .15s;border:1px solid transparent}
+.stab:hover{border-color:var(--pri-l)}
+.stab.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.sp{display:none}.sp.active{display:block}
+
+/* Toggle */
+.tgl{width:40px;height:22px;border-radius:11px;background:var(--bd2);cursor:pointer;
+  position:relative;transition:background .2s;flex-shrink:0}
+.tgl::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;
+  border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12);transition:transform .2s}
+.tgl.on{background:var(--pri)}.tgl.on::after{transform:translateX(18px)}
+
+/* Button */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:8px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;
+  cursor:pointer;border:none;transition:all .15s;letter-spacing:.3px}
+.btn-p{background:var(--pri);color:#fff}.btn-p:hover{background:var(--pri-d)}
+.btn-o{background:transparent;border:1px solid var(--pri-l);color:var(--pri)}
+.btn-s{background:var(--card2);color:var(--tx2)}
+.btn-d{background:var(--err);color:#fff}
+
+/* ── HOME ── */
+.hm-face{width:72px;height:72px;border-radius:50%;background:var(--bg2);
+  border:2px solid var(--pri-l);display:flex;align-items:center;justify-content:center;
+  font-size:32px;flex-shrink:0;cursor:pointer;transition:transform .2s}
+.hm-face:hover{transform:scale(1.05)}
+.hm-greet{font-size:22px;font-weight:600;color:var(--tx)}
+.hm-date{font-size:11px;color:var(--tx3);margin-top:1px}
+.hm-conn{font-size:10px;color:var(--ok);margin-top:3px}
+.env-c{background:var(--card2);border-radius:var(--rs);padding:10px;text-align:center}
+.env-v{font-size:22px;font-weight:700;color:var(--tx)}
+.env-l{font-size:10px;color:var(--tx3);margin-top:1px}
+.q-btn{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);
+  padding:12px;text-align:center;cursor:pointer;transition:all .15s;font-size:12px;color:var(--tx2)}
+.q-btn:hover{border-color:var(--pri-l);box-shadow:var(--sh)}
+.q-btn .qi{font-size:22px;margin-bottom:3px}
+.sum-txt{font-size:11px;color:var(--tx2);line-height:1.9}
+.sum-dot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+/* ── CHAT ── */
+#pg-chat{display:none;flex-direction:column;padding:0;overflow:hidden}
+#pg-chat.active{display:flex}
+.ch-msgs{flex:1;overflow-y:auto;padding:12px 16px 8px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
+.ch-msgs::-webkit-scrollbar{display:none}
+.bub{max-width:72%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.65;letter-spacing:.2px}
+.bub.u{align-self:flex-end;background:var(--pri);color:#fff;border-bottom-right-radius:3px}
+.bub.a{align-self:flex-start;background:var(--card);box-shadow:var(--sh);border-bottom-left-radius:3px;color:var(--tx)}
+.bub .hwc{margin-top:5px;background:rgba(90,138,90,.08);border-radius:5px;padding:4px 8px;font-size:10px;color:var(--ok)}
+.ch-bar{flex-shrink:0;padding:6px 12px;background:var(--card);border-top:1px solid var(--bd);display:flex;gap:6px;align-items:center}
+.ch-in{flex:1;padding:7px 12px;border-radius:18px;border:1px solid var(--bd2);font-size:12px;background:var(--bg);outline:none;color:var(--tx)}
+.ch-in:focus{border-color:var(--pri-l)}
+.ch-send{width:32px;height:32px;border-radius:50%;background:var(--pri);color:#fff;border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ch-voice{width:32px;height:32px;border-radius:50%;background:var(--card2);border:1px solid var(--bd2);color:var(--pri);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ch-hint{font-size:10px;color:var(--tx4);padding:0 16px 4px}
+
+/* ── REMIND ── */
+.rm-card{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:6px;cursor:pointer;transition:all .15s}
+.rm-card:hover{box-shadow:0 3px 16px rgba(0,0,0,.08)}
+.rm-t{font-size:16px;font-weight:700;color:var(--tx);width:46px;flex-shrink:0;text-align:center}
+.rm-ic{font-size:20px;flex-shrink:0}
+.rm-bd{flex:1}.rm-nm{font-size:12px;font-weight:500;color:var(--tx)}.rm-ds{font-size:10px;color:var(--tx3);margin-top:1px}
+.rm-ck{width:22px;height:22px;border-radius:50%;border:2px solid var(--bd2);cursor:pointer;transition:all .15s;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px}
+.rm-ck.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.rm-card.done{opacity:.45}
+
+/* SOS */
+.sos-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px;border-radius:14px;cursor:pointer;transition:all .15s;gap:6px;color:#fff}
+.sos-btn:hover{transform:scale(1.02)}
+.sos-btn .si{font-size:32px}.sos-btn .sl{font-size:13px;font-weight:600}.sos-btn .sd{font-size:10px;opacity:.8}
+
+/* Med history */
+.med-hist{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px}
+.med-d{text-align:center;font-size:9px;color:var(--tx3);padding:3px 0}
+.med-c{width:100%;aspect-ratio:1;border-radius:3px;background:var(--card2)}
+.med-c.ok{background:rgba(90,138,90,.25)}.med-c.late{background:rgba(196,160,58,.25)}.med-c.miss{background:rgba(196,74,74,.2)}
+
+/* Health chart */
+.hc{background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);margin-bottom:8px}
+.hc-t{font-size:11px;font-weight:600;color:var(--tx);margin-bottom:6px}
+.hc-bars{display:flex;align-items:flex-end;gap:5px;height:65px}
+.hc-bar{flex:1;border-radius:3px 3px 0 0;position:relative}
+.hc-bar .hv{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--tx3);white-space:nowrap}
+.hc-bar .hl{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--tx4)}
+
+/* ── DEVICE ── */
+.room-tabs{display:flex;gap:4px;margin-bottom:8px}
+.rtab{padding:4px 12px;border-radius:14px;font-size:11px;background:var(--card2);color:var(--tx3);cursor:pointer;transition:all .15s}
+.rtab.active{background:var(--pri);color:#fff}
+.rct{display:none}.rct.active{display:block}
+.dev-c{background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);
+  display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s}
+.dev-c:hover{box-shadow:0 3px 16px rgba(0,0,0,.08)}
+.dc-ic{font-size:24px;width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dc-ic.on{background:rgba(196,135,58,.1)}.dc-ic.off{background:var(--card2)}
+.dc-nm{font-size:12px;font-weight:500;color:var(--tx)}.dc-st{font-size:10px;color:var(--tx3);margin-top:1px}
+
+/* Scene */
+.sc-c{padding:12px;border-radius:var(--r);cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;gap:12px}
+.sc-c:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.sc-ic{font-size:28px;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sc-nm{font-size:14px;font-weight:600;color:var(--tx)}.sc-ds{font-size:10px;color:var(--tx3);margin-top:2px;line-height:1.5}
+
+/* Camera */
+.cam-pre{background:#1a1f2a;border-radius:var(--r);height:160px;display:flex;align-items:center;justify-content:center;
+  color:#484f58;font-size:13px;margin-bottom:8px;position:relative}
+.cam-btns{position:absolute;bottom:8px;right:8px;display:flex;gap:5px}
+.photo-g{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.photo-t{aspect-ratio:1;border-radius:var(--rs);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--tx4)}
+
+/* ── SETTING ── */
+.sg{margin-bottom:12px}
+.sg-t{font-size:10px;color:var(--tx4);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+.sr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--card);border-radius:var(--rs);margin-bottom:3px}
+.sr-l{font-size:12px;color:var(--tx)}.sr-v{font-size:11px;color:var(--tx3)}
+.slider{width:100px;height:3px;border-radius:2px;background:var(--bd2);position:relative;cursor:pointer}
+.slider-f{height:100%;border-radius:2px;background:var(--pri)}
+.slider-th{position:absolute;top:-5px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);border:2px solid var(--pri)}
+
+/* About */
+.hw-g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.hw-i{background:var(--card2);border-radius:var(--rs);padding:8px;text-align:center}
+.hw-i .hs{font-size:16px;margin-bottom:1px}.hw-i .hn{font-size:10px;color:var(--tx3)}
+
+/* Page title */
+.pg-t{font-size:15px;font-weight:600;color:var(--tx);margin-bottom:10px;letter-spacing:.5px}
+.mb6{margin-bottom:6px}.mb8{margin-bottom:8px}.mb10{margin-bottom:10px}.mb12{margin-bottom:12px}
+.mt6{margin-top:6px}.mt8{margin-top:8px}
+.tc{text-align:center}
+.tx-ok{color:var(--ok)}.tx-warn{color:var(--warn)}.tx-err{color:var(--err)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ========== BOOT (Page 0) ========== -->
+<div id="boot">
+  <div class="boot-in">
+    <div class="boot-spin"><i></i><i></i><i></i></div>
+    <div class="boot-txt">
+      <div class="br">小 鲲</div>
+      <div class="en">KUNPENG CORTEX</div>
+      <div class="boot-bar">
+        <div class="boot-rail"><div class="boot-fill" id="bFill"></div></div>
+        <div class="boot-lbl" id="bLbl">0%</div>
+      </div>
+      <div class="boot-st" id="bSt">正在唤醒小鲲...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STATUS BAR ========== -->
+<div id="sbar">
+  <span id="sTime">09:30</span>
+  <div class="sb-r">
+    <span><span class="sb-dot"></span>WiFi</span>
+    <span id="sOnline" style="color:var(--ok)">在线</span>
+  </div>
+</div>
+
+<!-- ========== CONTENT ========== -->
+<div id="content">
+
+  <!-- ===== Page 1: HOME ===== -->
+  <div class="pg active" id="pg-home">
+    <div style="display:flex;gap:14px;margin-bottom:12px">
+      <div class="hm-face" onclick="alert('切换头像表情')">🐟</div>
+      <div style="flex:1">
+        <div class="hm-greet" id="greet">王大爷，早上好呀</div>
+        <div class="hm-date">2026年6月8日 星期日</div>
+        <div class="hm-conn">● 小鲲在线</div>
+      </div>
+      <div class="card" style="flex:1;margin:0;padding:10px 12px">
+        <div class="card-t">今日摘要</div>
+        <div class="sum-txt">
+          <div><span class="sum-dot" style="background:var(--ok)"></span>降压药 08:00 已服 ✓</div>
+          <div><span class="sum-dot" style="background:var(--warn)"></span>胰岛素 20:00 待注射</div>
+          <div><span class="sum-dot" style="background:var(--pri)"></span>2 条新提醒</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g3 mb10">
+      <div class="env-c"><div class="env-v">26°</div><div class="env-l">温度</div></div>
+      <div class="env-c"><div class="env-v">60%</div><div class="env-l">湿度</div></div>
+      <div class="env-c"><div class="env-v">☀ 晴</div><div class="env-l">天气</div></div>
+    </div>
+
+    <div class="g4">
+      <div class="q-btn" onclick="nav('chat')"><div class="qi">💬</div>聊聊天</div>
+      <div class="q-btn" onclick="nav('remind')"><div class="qi">🔔</div>看提醒</div>
+      <div class="q-btn" onclick="nav('device');switchDevTab('cam')"><div class="qi">📷</div>拍个照</div>
+      <div class="q-btn" onclick="nav('device')"><div class="qi">💡</div>家居控制</div>
+    </div>
+  </div>
+
+  <!-- ===== Page 2: CHAT ===== -->
+  <div class="pg" id="pg-chat">
+    <div class="ch-msgs" id="chMsgs">
+      <div class="bub a">王大爷早上好！今天天气不错，温度26度，适合出去走走呢。</div>
+      <div class="bub u">帮我把客厅的灯开一下</div>
+      <div class="bub a">好的，我来帮您开灯。<div class="hwc">✅ 客厅主灯已打开</div></div>
+      <div class="bub u">拍张照片看看</div>
+      <div class="bub a">好的，照片拍好了。我看到画面里是客厅，沙发上的靠垫摆得很整齐，茶几上放着您的茶杯，地面很干净呢。</div>
+      <div class="bub u">今天吃药了吗</div>
+      <div class="bub a">降压药今早8点已经吃了 ✓ 胰岛素晚上8点还有一次，到时候我会提醒您的，放心！</div>
+    </div>
+    <div class="ch-hint" id="chHint"></div>
+    <div class="ch-bar">
+      <button class="ch-voice" title="语音">🎙</button>
+      <input class="ch-in" id="chIn" placeholder="和小鲲说句话..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button class="ch-send" onclick="sendMsg()" title="发送">➤</button>
+    </div>
+  </div>
+
+  <!-- ===== Page 3: REMIND ===== -->
+  <div class="pg" id="pg-remind">
+    <div class="stabs">
+      <div class="stab active" onclick="switchRm(this,'today')">今日提醒</div>
+      <div class="stab" onclick="switchRm(this,'meds')">用药管理</div>
+      <div class="stab" onclick="switchRm(this,'health')">健康数据</div>
+      <div class="stab" onclick="switchRm(this,'sos')">紧急联系</div>
+    </div>
+
+    <!-- Today -->
+    <div class="sp active" id="rm-today">
+      <div class="rm-card done"><div class="rm-t">08:00</div><div class="rm-ic">💊</div><div class="rm-bd"><div class="rm-nm">服用降压药</div><div class="rm-ds">客厅茶几抽屉 · 已完成</div></div><div class="rm-ck done">✓</div></div>
+      <div class="rm-card done"><div class="rm-t">08:00</div><div class="rm-ic">💉</div><div class="rm-bd"><div class="rm-nm">注射胰岛素（早）</div><div class="rm-ds">冰箱保鲜层 · 已完成</div></div><div class="rm-ck done">✓</div></div>
+      <div class="rm-card"><div class="rm-t">14:00</div><div class="rm-ic">🚶</div><div class="rm-bd"><div class="rm-nm">午后散步</div><div class="rm-ds">小区花园 · 建议30分钟</div></div><div class="rm-ck" onclick="ck(this)"></div></div>
+      <div class="rm-card"><div class="rm-t">17:00</div><div class="rm-ic">📞</div><div class="rm-bd"><div class="rm-nm">儿子回电话</div><div class="rm-ds">约好下午通话</div></div><div class="rm-ck" onclick="ck(this)"></div></div>
+      <div class="rm-card"><div class="rm-t">20:00</div><div class="rm-ic">💉</div><div class="rm-bd"><div class="rm-nm">注射胰岛素（晚）</div><div class="rm-ds">冰箱保鲜层</div></div><div class="rm-ck" onclick="ck(this)"></div></div>
+    </div>
+
+    <!-- Meds -->
+    <div class="sp" id="rm-meds">
+      <div class="card-t mb6">今日用药</div>
+      <div class="rm-card"><div class="rm-ic">💊</div><div class="rm-bd"><div class="rm-nm">降压药</div><div class="rm-ds">早 08:00 · 客厅茶几抽屉</div></div><div class="rm-ck done" onclick="ck(this)">✓</div></div>
+      <div class="rm-card"><div class="rm-ic">💉</div><div class="rm-bd"><div class="rm-nm">胰岛素（早）</div><div class="rm-ds">早 08:00 · 冰箱保鲜层</div></div><div class="rm-ck done" onclick="ck(this)">✓</div></div>
+      <div class="rm-card"><div class="rm-ic">💉</div><div class="rm-bd"><div class="rm-nm">胰岛素（晚）</div><div class="rm-ds">晚 20:00 · 冰箱保鲜层</div></div><div class="rm-ck" onclick="ck(this)"></div></div>
+      <div class="card mt8">
+        <div class="card-t">近 7 天服药记录</div>
+        <div class="med-hist">
+          <div class="med-d">一</div><div class="med-d">二</div><div class="med-d">三</div><div class="med-d">四</div><div class="med-d">五</div><div class="med-d">六</div><div class="med-d" style="color:var(--pri);font-weight:600">今</div>
+          <div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c late"></div><div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c ok"></div>
+          <div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c late"></div><div class="med-c ok"></div><div class="med-c ok"></div><div class="med-c miss"></div><div class="med-c ok"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;font-size:9px;color:var(--tx4)">
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:rgba(90,138,90,.4);vertical-align:middle;margin-right:2px"></span>按时</span>
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:rgba(196,160,58,.4);vertical-align:middle;margin-right:2px"></span>延迟</span>
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:rgba(196,74,74,.35);vertical-align:middle;margin-right:2px"></span>漏服</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health -->
+    <div class="sp" id="rm-health">
+      <div class="hc">
+        <div class="hc-t">血压趋势（近 7 天 · mmHg）</div>
+        <div class="hc-bars">
+          <div class="hc-bar" style="height:70%;background:linear-gradient(180deg,var(--pri),var(--pri-l))"><span class="hv">138</span><span class="hl">一</span></div>
+          <div class="hc-bar" style="height:65%;background:linear-gradient(180deg,var(--pri),var(--pri-l))"><span class="hv">135</span><span class="hl">二</span></div>
+          <div class="hc-bar" style="height:55%;background:linear-gradient(180deg,var(--ok),#8cb89c)"><span class="hv">130</span><span class="hl">三</span></div>
+          <div class="hc-bar" style="height:68%;background:linear-gradient(180deg,var(--pri),var(--pri-l))"><span class="hv">136</span><span class="hl">四</span></div>
+          <div class="hc-bar" style="height:48%;background:linear-gradient(180deg,var(--ok),#8cb89c)"><span class="hv">128</span><span class="hl">五</span></div>
+          <div class="hc-bar" style="height:58%;background:linear-gradient(180deg,var(--ok),#8cb89c)"><span class="hv">132</span><span class="hl">六</span></div>
+          <div class="hc-bar" style="height:52%;background:linear-gradient(180deg,var(--ok),#8cb89c)"><span class="hv">129</span><span class="hl" style="color:var(--pri);font-weight:600">今</span></div>
+        </div>
+      </div>
+      <div class="hc">
+        <div class="hc-t">血糖趋势（近 7 天 · mmol/L）</div>
+        <div class="hc-bars">
+          <div class="hc-bar" style="height:60%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hv">6.8</span><span class="hl">一</span></div>
+          <div class="hc-bar" style="height:55%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hv">6.5</span><span class="hl">二</span></div>
+          <div class="hc-bar" style="height:72%;background:linear-gradient(180deg,var(--warn),#d4c080)"><span class="hv">7.2</span><span class="hl">三</span></div>
+          <div class="hc-bar" style="height:45%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hv">6.2</span><span class="hl">四</span></div>
+          <div class="hc-bar" style="height:56%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hv">6.6</span><span class="hl">五</span></div>
+          <div class="hc-bar" style="height:50%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hv">6.3</span><span class="hl">六</span></div>
+          <div class="hc-bar" style="height:54%;background:linear-gradient(180deg,var(--blue),#8ca8d4)"><span class="hv">6.5</span><span class="hl" style="color:var(--pri);font-weight:600">今</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-t">今天感觉怎么样？</div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <div style="flex:1;padding:8px;border-radius:var(--rs);background:var(--card2);text-align:center;cursor:pointer;font-size:12px;border:1px solid transparent" onclick="this.style.borderColor='var(--ok)'">😊 挺好的</div>
+          <div style="flex:1;padding:8px;border-radius:var(--rs);background:var(--card2);text-align:center;cursor:pointer;font-size:12px;border:1px solid transparent" onclick="this.style.borderColor='var(--warn)'">😐 一般般</div>
+          <div style="flex:1;padding:8px;border-radius:var(--rs);background:var(--card2);text-align:center;cursor:pointer;font-size:12px;border:1px solid transparent" onclick="this.style.borderColor='var(--err)'">😔 不太好</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOS -->
+    <div class="sp" id="rm-sos">
+      <div class="g3" style="margin-top:12px">
+        <div class="sos-btn" style="background:linear-gradient(135deg,#c44a4a,#d45a5a)" onclick="alert('正在呼叫儿子 138****1234...')"><div class="si">📞</div><div class="sl">呼叫儿子</div><div class="sd">138****1234</div></div>
+        <div class="sos-btn" style="background:linear-gradient(135deg,#c47a3a,#d48a4a)" onclick="alert('正在拨打120急救...')"><div class="si">🚑</div><div class="sl">急救 120</div><div class="sd">紧急医疗救援</div></div>
+        <div class="sos-btn" style="background:linear-gradient(135deg,var(--pri),#d4a55c)" onclick="alert('小鲲紧急模式启动，正在检测环境...')"><div class="si">🐟</div><div class="sl">小鲲紧急</div><div class="sd">摔倒检测+自动报警</div></div>
+      </div>
+      <div class="card mt8 tc" style="color:var(--tx3);font-size:11px;line-height:1.8">遇到紧急情况请保持冷静<br>小鲲会一直陪着您</div>
+    </div>
+  </div>
+
+  <!-- ===== Page 4: DEVICE ===== -->
+  <div class="pg" id="pg-device">
+    <div class="stabs">
+      <div class="stab active" onclick="switchDevTab('dev')">设备控制</div>
+      <div class="stab" onclick="switchDevTab('cam')">摄像头</div>
+      <div class="stab" onclick="switchDevTab('scene')">情景模式</div>
+    </div>
+
+    <!-- Devices -->
+    <div class="sp active" id="dv-dev">
+      <div class="room-tabs mb8">
+        <div class="rtab active" onclick="switchRoom(this,'living')">客厅</div>
+        <div class="rtab" onclick="switchRoom(this,'bed')">卧室</div>
+        <div class="rtab" onclick="switchRoom(this,'kit')">厨房</div>
+      </div>
+      <div class="rct active" id="rm-living">
+        <div class="g2">
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">💡</div><div><div class="dc-nm">主灯</div><div class="dc-st tx-ok">已开启 · 70%</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic off">🕯</div><div><div class="dc-nm">氛围灯</div><div class="dc-st">已关闭</div></div><div class="tgl" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">📷</div><div><div class="dc-nm">摄像头</div><div class="dc-st tx-ok">在线</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic off">🤖</div><div><div class="dc-nm">机械臂</div><div class="dc-st">待机中</div></div><div class="tgl" style="margin-left:auto"></div></div>
+        </div>
+      </div>
+      <div class="rct" id="rm-bed">
+        <div class="g2">
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic off">💡</div><div><div class="dc-nm">卧室灯</div><div class="dc-st">已关闭</div></div><div class="tgl" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic off">🌙</div><div><div class="dc-nm">夜灯</div><div class="dc-st">已关闭</div></div><div class="tgl" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">🌡</div><div><div class="dc-nm">床头传感器</div><div class="dc-st tx-ok">正常 · 25.5°</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+        </div>
+      </div>
+      <div class="rct" id="rm-kit">
+        <div class="g2">
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">🔥</div><div><div class="dc-nm">燃气传感器</div><div class="dc-st tx-ok">正常</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+          <div class="dev-c" onclick="tgDev(this)"><div class="dc-ic on">🌡</div><div><div class="dc-nm">温湿度传感器</div><div class="dc-st tx-ok">28° · 55%</div></div><div class="tgl on" style="margin-left:auto"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Camera -->
+    <div class="sp" id="dv-cam">
+      <div class="cam-pre">
+        <span>📷 实时画面预览</span>
+        <div class="cam-btns">
+          <button class="btn btn-p" style="padding:5px 12px;font-size:10px" onclick="alert('拍照成功！')">拍照</button>
+          <button class="btn btn-o" style="padding:5px 12px;font-size:10px;color:var(--blue);border-color:rgba(90,122,196,.3)" onclick="alert('小鲲正在分析画面...')">让小鲲看看</button>
+        </div>
+      </div>
+      <div class="card-t mb6">最近照片</div>
+      <div class="photo-g">
+        <div class="photo-t">📸</div><div class="photo-t">📸</div><div class="photo-t">📸</div>
+        <div class="photo-t" style="border:2px dashed var(--bd2);background:transparent;font-size:16px">+</div>
+      </div>
+    </div>
+
+    <!-- Scene -->
+    <div class="sp" id="dv-scene">
+      <div class="sc-c card mb8" style="border-left:3px solid var(--pri)" onclick="alert('起床模式：卧室灯渐亮中...')"><div class="sc-ic" style="background:rgba(196,135,58,.1)">🌅</div><div><div class="sc-nm">起床模式</div><div class="sc-ds">卧室灯从10%渐亮到70%，播放轻音乐</div></div></div>
+      <div class="sc-c card mb8" style="border-left:3px solid var(--blue)" onclick="alert('睡觉模式：正在关闭所有灯...')"><div class="sc-ic" style="background:rgba(90,122,196,.1)">🌙</div><div><div class="sc-nm">睡觉模式</div><div class="sc-ds">关闭所有灯，卧室留夜灯10%</div></div></div>
+      <div class="sc-c card mb8" style="border-left:3px solid var(--ok)" onclick="alert('出门模式：所有设备已关闭，摄像头已开启')"><div class="sc-ic" style="background:rgba(90,138,90,.1)">🚪</div><div><div class="sc-nm">出门模式</div><div class="sc-ds">关闭所有灯和设备，开启摄像头监控</div></div></div>
+      <div class="sc-c card" style="border-left:3px solid var(--warn)" onclick="alert('回家模式：客厅灯已打开')"><div class="sc-ic" style="background:rgba(196,160,58,.1)">🏠</div><div><div class="sc-nm">回家模式</div><div class="sc-ds">打开客厅主灯，关闭摄像头监控</div></div></div>
+    </div>
+  </div>
+
+  <!-- ===== Page 5: SETTING ===== -->
+  <div class="pg" id="pg-setting">
+    <div class="stabs">
+      <div class="stab active" onclick="switchSt(this,'personal')">个人设置</div>
+      <div class="stab" onclick="switchSt(this,'device')">设备设置</div>
+      <div class="stab" onclick="switchSt(this,'about')">关于系统</div>
+    </div>
+
+    <!-- Personal -->
+    <div class="sp active" id="st-personal">
+      <div class="sg"><div class="sg-t">个人信息</div>
+        <div class="sr"><span class="sr-l">姓名</span><span class="sr-v">王大爷</span></div>
+        <div class="sr"><span class="sr-l">年龄</span><span class="sr-v">75 岁</span></div>
+        <div class="sr"><span class="sr-l">居住状况</span><span class="sr-v">独居</span></div>
+      </div>
+      <div class="sg"><div class="sg-t">紧急联系人</div>
+        <div class="sr"><span class="sr-l">儿子</span><span class="sr-v">138****1234</span></div>
+      </div>
+      <div class="sg"><div class="sg-t">用药时间</div>
+        <div class="sr"><span class="sr-l">降压药</span><span class="sr-v">每天 08:00</span></div>
+        <div class="sr"><span class="sr-l">胰岛素（早）</span><span class="sr-v">每天 08:00</span></div>
+        <div class="sr"><span class="sr-l">胰岛素（晚）</span><span class="sr-v">每天 20:00</span></div>
+      </div>
+      <div class="card tc mt8" style="font-size:11px;color:var(--tx3)"><div style="font-size:24px;margin-bottom:3px">📱</div>家属可扫描二维码远程修改设置</div>
+    </div>
+
+    <!-- Device -->
+    <div class="sp" id="st-device">
+      <div class="sg"><div class="sg-t">声音</div>
+        <div class="sr"><span class="sr-l">音量</span><div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--tx4)">🔈</span><div class="slider"><div class="slider-f" style="width:70%"></div><div class="slider-th" style="left:calc(70% - 7px)"></div></div><span style="font-size:10px">70%</span></div></div>
+        <div class="sr"><span class="sr-l">语音语速</span><span class="sr-v">慢速</span></div>
+      </div>
+      <div class="sg"><div class="sg-t">显示</div>
+        <div class="sr"><span class="sr-l">屏幕亮度</span><div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--tx4)">🔅</span><div class="slider"><div class="slider-f" style="width:60%"></div><div class="slider-th" style="left:calc(60% - 7px)"></div></div><span style="font-size:10px">60%</span></div></div>
+      </div>
+      <div class="sg"><div class="sg-t">网络</div>
+        <div class="sr"><span class="sr-l">WiFi</span><span class="sr-v tx-ok">已连接 · 信号良好</span></div>
+        <div class="sr"><span class="sr-l">方言适配</span><div class="tgl" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="sp" id="st-about">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--bg2);border:2px solid var(--pri-l);display:flex;align-items:center;justify-content:center;font-size:22px">🐟</div>
+        <div><div style="font-size:16px;font-weight:600;letter-spacing:2px">小 鲲</div><div style="font-size:10px;color:var(--tx3);letter-spacing:1px">KUNPENG CORTEX v2.0</div></div>
+      </div>
+      <div class="sg"><div class="sg-t">系统信息</div>
+        <div class="sr"><span class="sr-l">设备</span><span class="sr-v">OrangePi Kunpeng Pro</span></div>
+        <div class="sr"><span class="sr-l">芯片</span><span class="sr-v">RK3588 · 8核 ARM64</span></div>
+        <div class="sr"><span class="sr-l">系统</span><span class="sr-v">openEuler 22.03</span></div>
+        <div class="sr"><span class="sr-l">内存</span><span class="sr-v">16 GB</span></div>
+        <div class="sr"><span class="sr-l">运行时长</span><span class="sr-v">3 天 12 小时</span></div>
+      </div>
+      <div class="card-t mb6 mt8">硬件状态</div>
+      <div class="hw-g mb8">
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">摄像头</div></div>
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">GPIO</div></div>
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">I2C</div></div>
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">UART</div></div>
+        <div class="hw-i"><div class="hs">✅</div><div class="hn">SPI</div></div>
+        <div class="hw-i"><div class="hs">❌</div><div class="hn">NPU 待驱动</div></div>
+      </div>
+      <div class="sg"><div class="sg-t">能力</div>
+        <div class="sr"><span class="sr-l">已加载 Skill</span><span class="sr-v">3 个</span></div>
+        <div class="sr"><span class="sr-l">记忆条目</span><span class="sr-v">12 条</span></div>
+        <div class="sr"><span class="sr-l">AI 引擎</span><span class="sr-v">Kimi k2</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- ========== BOTTOM NAV ========== -->
+<div id="bnav">
+  <div class="ni active" onclick="nav('home')"><span class="nic">🏠</span><span>首页</span></div>
+  <div class="ni" onclick="nav('chat')"><span class="nic">💬</span><span>会话</span></div>
+  <div class="ni" onclick="nav('remind')"><span class="nic">🔔</span><span>提醒</span></div>
+  <div class="ni" onclick="nav('device')"><span class="nic">🏡</span><span>家居</span></div>
+  <div class="ni" onclick="nav('setting')"><span class="nic">⚙</span><span>设置</span></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+/* ── BOOT ── */
+const bPh=[{p:15,t:'正在唤醒小鲲...'},{p:40,t:'加载记忆与技能...'},{p:65,t:'连接硬件模块...'},{p:85,t:'初始化完成，准备就绪'},{p:100,t:'小鲲已就绪 ✦'}];
+let bC=0,bI=0;
+function bTick(){if(bC>=100){setTimeout(()=>document.getElementById('boot').classList.add('hide'),400);return}
+bC+=Math.random()*4+2;if(bC>100)bC=100;
+document.getElementById('bFill').style.width=bC+'%';
+document.getElementById('bLbl').textContent=Math.round(bC)+'%';
+while(bI<bPh.length&&bC>=bPh[bI].p){document.getElementById('bSt').textContent=bPh[bI].t;bI++}
+if(bC<100)setTimeout(bTick,120+Math.random()*180);
+else setTimeout(()=>document.getElementById('boot').classList.add('hide'),500)}
+bTick();
+
+/* ── NAV ── */
+const pMap={home:'pg-home',chat:'pg-chat',remind:'pg-remind',device:'pg-device',setting:'pg-setting'};
+const nMap={home:0,chat:1,remind:2,device:3,setting:4};
+function nav(n){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+  const t=document.getElementById(pMap[n]);if(t)t.classList.add('active');
+  document.querySelectorAll('.ni').forEach((ni,i)=>ni.classList.toggle('active',i===nMap[n]));
+}
+
+/* ── SUB-TABS ── */
+function switchRm(el,tab){
+  el.parentElement.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  const pg=document.getElementById('pg-remind');
+  pg.querySelectorAll('.sp').forEach(s=>s.classList.remove('active'));
+  const t=document.getElementById('rm-'+tab);if(t)t.classList.add('active');
+}
+function switchDevTab(tab){
+  const pg=document.getElementById('pg-device');
+  pg.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+  const idx={dev:0,cam:1,scene:2}[tab]||0;
+  pg.querySelectorAll('.stab')[idx].classList.add('active');
+  pg.querySelectorAll('.sp').forEach(s=>s.classList.remove('active'));
+  const t=document.getElementById('dv-'+tab);if(t)t.classList.add('active');
+}
+function switchSt(el,tab){
+  el.parentElement.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  const pg=document.getElementById('pg-setting');
+  pg.querySelectorAll('.sp').forEach(s=>s.classList.remove('active'));
+  const t=document.getElementById('st-'+tab);if(t)t.classList.add('active');
+}
+
+/* ── ROOM ── */
+function switchRoom(el,room){
+  el.parentElement.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  document.querySelectorAll('.rct').forEach(r=>r.classList.remove('active'));
+  const t=document.getElementById('rm-'+room);if(t)t.classList.add('active');
+}
+
+/* ── DEVICE TOGGLE ── */
+function tgDev(card){
+  const tgl=card.querySelector('.tgl'),ic=card.querySelector('.dc-ic'),st=card.querySelector('.dc-st');
+  const on=tgl.classList.toggle('on');
+  ic.classList.toggle('on',on);ic.classList.toggle('off',!on);
+  st.textContent=on?'已开启':on?'已关闭':'已关闭';
+  st.className=on?'dc-st tx-ok':'dc-st';
+}
+
+/* ── REMINDER CHECK ── */
+function ck(el){el.classList.toggle('done');el.textContent=el.classList.contains('done')?'✓':'';
+  el.closest('.rm-card').classList.toggle('done',el.classList.contains('done'))}
+
+/* ── CHAT ── */
+function sendMsg(){
+  const inp=document.getElementById('chIn'),text=inp.value.trim();if(!text)return;
+  const msgs=document.getElementById('chMsgs');
+  const u=document.createElement('div');u.className='bub u';u.textContent=text;msgs.appendChild(u);inp.value='';
+  document.getElementById('chHint').textContent='小鲲正在思考...';
+  setTimeout(()=>{
+    document.getElementById('chHint').textContent='';
+    const a=document.createElement('div');a.className='bub a';
+    const l=text.toLowerCase();
+    if(/灯|开灯|关灯/.test(l))a.innerHTML='好的，我来帮您操作。<div class="hwc">✅ 灯光已控制</div>';
+    else if(/拍|照/.test(l))a.textContent='好的，照片拍好了。画面里是客厅，一切都很整齐呢。';
+    else if(/药|吃/.test(l))a.textContent='降压药今早8点已经吃了 ✓ 胰岛素晚上8点还有一次，到时候我提醒您！';
+    else if(/天气|温度/.test(l))a.textContent='今天天气晴朗，温度26度，湿度60%，很适合出去走走呢。';
+    else if(/你好|早上好|晚上好/.test(l))a.textContent='您好呀！今天感觉怎么样？有什么需要我帮忙的吗？';
+    else if(/晚安|睡/.test(l))a.textContent='晚安王大爷，卧室给您留了小夜灯，好好休息！';
+    else a.textContent='好的，我明白了。还有什么需要我帮您的吗？';
+    msgs.appendChild(a);msgs.scrollTop=msgs.scrollHeight;
+  },500);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+/* ── CLOCK ── */
+function updClock(){
+  const n=new Date(),t=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  document.getElementById('sTime').textContent=t;
+  const h=n.getHours();let g='您好呀';
+  if(h<6)g='夜深了，注意休息';else if(h<11)g='早上好呀';else if(h<14)g='中午好，吃午饭了吗';else if(h<18)g='下午好呀';else g='晚上好呀';
+  document.getElementById('greet').textContent='王大爷，'+g;
+}
+updClock();setInterval(updClock,30000);
+</script>
+</body>
+</html>

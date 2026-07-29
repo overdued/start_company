@@ -10,3 +10,10 @@ data/sessions*.db
 .idea/
 .vscode/
 *.swp
+data/voice/
+data/*.db
+data/memos.db
+models/sherpa-kws/*.onnx
+models/sherpa-kws/test_wavs/
+__pycache__/
+*.pyc

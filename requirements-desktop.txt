@@ -1,0 +1,2 @@
+# Optional desktop companion shell (Linux GTK/WebKitGTK)
+pywebview>=5.0
