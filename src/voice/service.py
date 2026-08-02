@@ -102,47 +102,38 @@ class VoiceService:
     # ── 音频处理 ──
 
     def _on_audio_block(self, block: np.ndarray):
-        """30ms 音频块回调：VAD 收集语音段"""
+        """30ms 音频块回调：持续累积语音，长停顿后一次性处理"""
         energy = float(np.sqrt(np.mean(block ** 2)))
-
-        # 每 2 秒输出一次音量指示（帮助确认麦克风工作）
         now = time.time()
-        if not hasattr(self, '_last_level_ts'):
-            self._last_level_ts = 0
-        if now - self._last_level_ts > 2.0 and energy > 0.001:
+        if not hasattr(self, '_last_level_ts'): self._last_level_ts = 0
+        if now - self._last_level_ts > 2.0:
             level = min(10, int(energy * 200))
             bar = "█" * level + "░" * (10 - level)
-            print(f"\r  🎤 [{bar}] {'🔊 检测到声音！' if energy > 0.02 else '...'}", end="", flush=True)
+            tag = "🔊 说话中" if self._audio_buf else ("🔊" if energy > 0.02 else "...")
+            print(f"\r  🎤 [{bar}] {tag}", end="", flush=True)
             self._last_level_ts = now
 
-        is_speech = False
-        if isinstance(self.vad, EnergyVAD):
-            is_speech = self.vad.is_speech(block)
-        else:
-            # 降低能量阈值让唤醒更容易
-            is_speech = energy > 0.005
-
+        is_speech = energy > 0.003  # 极低阈值，不漏过任何声音
         if is_speech:
             self._audio_buf.append(block.copy())
-            self._last_voice_ts = time.time()
-        else:
-            # 静音超过 0.5s 且有累积语音 → 触发处理
-            if self._audio_buf and (time.time() - self._last_voice_ts) > 0.5:
-                seg = np.concatenate(self._audio_buf)
-                self._audio_buf = []
-                if self._state == "standby":
-                    threading.Thread(target=self._process_segment, args=(seg,), daemon=True).start()
-
-    def _main_loop(self):
-        """主循环：主要依赖回调，此处做超时清理"""
-        while self._running:
-            # 超时清空缓冲（防卡死）
-            if self._audio_buf and (time.time() - self._last_voice_ts) > 3.0:
+            self._last_voice_ts = now
+        elif self._audio_buf:
+            # 静音超过 1.5s → 处理累积的完整句子
+            if now - self._last_voice_ts > 1.5:
                 seg = np.concatenate(self._audio_buf)
                 self._audio_buf = []
                 if self._state == "standby" and len(seg) > TARGET_RATE * 0.5:
                     threading.Thread(target=self._process_segment, args=(seg,), daemon=True).start()
-            time.sleep(0.1)
+
+    def _main_loop(self):
+        """主循环：超时兜底处理长时间累积的语音"""
+        while self._running:
+            if self._audio_buf and time.time() - self._last_voice_ts > 4.0:
+                seg = np.concatenate(self._audio_buf)
+                self._audio_buf = []
+                if self._state == "standby" and len(seg) > TARGET_RATE * 0.5:
+                    threading.Thread(target=self._process_segment, args=(seg,), daemon=True).start()
+            time.sleep(0.2)
 
     # ── 核心流程 ──
 
@@ -150,10 +141,11 @@ class VoiceService:
         """处理一段语音：能量/跟踪窗口唤醒 → ASR → 声纹 → 对话"""
         duration = len(wav) / TARGET_RATE
         energy = float(np.sqrt(np.mean(wav ** 2)))
-        print(f"\n  [DEBUG] 收到语音段: {duration:.1f}s, 能量={energy:.4f}")
+        print(f"\n  [DEBUG] 语音段: {duration:.1f}s, 能量={energy:.4f}")
 
-        if duration < 0.3:
-            print(f"  [DEBUG] 太短，跳过")
+        # 接受任意长度的高能量语音（说话中断大于1秒才切段）
+        if duration < 0.3 and energy < 0.01:
+            print(f"  [DEBUG] 太短且能量低，跳过")
             return
 
         # 1. 唤醒检测（跟踪窗口内免唤醒，否则能量唤醒）
