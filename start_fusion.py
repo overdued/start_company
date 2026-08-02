@@ -841,10 +841,18 @@ class FusionChat:
                 elif cmd.startswith("speak "):
                     ok, res = self.hw_exe.speak(inp[7:])
                     print(f"  {'✅' if ok else '❌'} {res}"); continue
+                elif cmd == "vol":
+                    ok, res = self.hw_exe.volume()
+                    print(f"  🔊 {res}"); continue
+                elif cmd.startswith("vol "):
+                    try:
+                        ok, res = self.hw_exe.volume(int(inp[4:]))
+                        print(f"  {'✅' if ok else '❌'} {res}")
+                    except: print("  /vol 0-100"); continue
                 elif cmd == "help":
                     print("  /quit /clear /skills /memory /photo /photos /hw /status /help")
                     print("  📋 Memos: /memo <内容> | /memos [关键词] | /profile | /export")
-                    print("  🔊 音频: /speaker 测试 | /speak <文字> TTS播报")
+                    print("  🔊 音频: /speaker 测试 | /speak <文字> TTS播报 | /vol [0-100]")
                     continue
 
             try:
