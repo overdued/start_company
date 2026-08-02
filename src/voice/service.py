@@ -188,12 +188,28 @@ class VoiceService:
             except Exception:
                 pass
 
-        # 5. 对话（通过 v2.0 智能体决策）
+        # 5. 对话（通过 v2.0 智能体决策——含视觉）
         if self.chat:
             user_name = identity.get("name") if identity else None
             prompt = text if not user_name else f"[说话人: {user_name}] {text}"
+
+            # 拍照/视觉请求：自动拍照并传给模型识别
+            photo_path = None
+            hw_res = (False, "")
+            if any(kw in text for kw in ("拍照","看看","照片","画面","图片","看到","周围")):
+                if hasattr(self.chat, 'hw_exe') and self.chat.hw.camera:
+                    ok, res = self.chat.hw_exe.take_photo()
+                    hw_res = (ok, res)
+                    if ok:
+                        import re
+                        m = re.search(r'(/[\w/]+\.jpg)', res)
+                        if m:
+                            photo_path = m.group(1)
+                            self.chat.last_photo = photo_path
+
             try:
-                reply = self.chat.chat(prompt)
+                reply = self.chat.chat(prompt, hw_result=hw_res if hw_res[1] else None,
+                                       photo_path=photo_path)
             except Exception as e:
                 reply = f"抱歉，处理时出错了: {e}"
             self._emit("reply", {"text": text, "reply": reply, "user": user_name})
@@ -241,10 +257,12 @@ class VoiceService:
             pass
 
     def _identify_speaker(self, wav: np.ndarray) -> Optional[Dict[str, Any]]:
-        """声纹识别：返回用户信息或 None"""
+        """声纹识别：返回用户信息或 None（只取前4秒加速，长音频不影响声纹）"""
         if not self.extractor:
             return None
-        emb = self.extractor.extract(wav)
+        # 只取前 4 秒做声纹（够用了，20秒讲话没必要全算）
+        short = wav[:TARGET_RATE * 4] if len(wav) > TARGET_RATE * 4 else wav
+        emb = self.extractor.extract(short)
 
         # 跟踪窗口内：与锚点比对
         if self.tracker.is_within_window() and self.tracker.check_continuation(emb):
