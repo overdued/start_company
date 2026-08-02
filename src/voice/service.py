@@ -147,26 +147,21 @@ class VoiceService:
     # ── 核心流程 ──
 
     def _process_segment(self, wav: np.ndarray):
-        """处理一段语音：KWS → ASR → 声纹 → 对话"""
+        """处理一段语音：能量/跟踪窗口唤醒 → ASR → 声纹 → 对话"""
         duration = len(wav) / TARGET_RATE
         if duration < 0.3:
             return
 
-        # 1. 唤醒词检测（跟踪窗口内可免唤醒）
+        # 1. 唤醒检测（跟踪窗口内免唤醒，否则能量唤醒）
         woke = False
+        energy = float(np.sqrt(np.mean(wav ** 2)))
         if self.tracker.is_within_window():
             woke = True  # 跟踪窗口内直接接受
-        elif self.spotter:
-            # 分块喂给 KWS
-            self.spotter.reset()
-            hit = None
-            chunk = int(TARGET_RATE * 0.1)
-            for i in range(0, len(wav), chunk):
-                r = self.spotter.accept_waveform(wav[i:i + chunk])
-                if r:
-                    hit = r
-                    break
-            if hit:
+        elif energy > 0.01:
+            woke = True  # 能量唤醒：说话够大声就触发
+            self._emit("wake", {"keyword": "能量唤醒"})
+
+        if woke:
                 woke = True
                 self._emit("wake", {"keyword": hit})
 
