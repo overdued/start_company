@@ -25,6 +25,12 @@ cd "$SCRIPT_DIR"
 source "$VENV_PATH/bin/activate"
 export PYTHONPATH="$SCRIPT_DIR/src"
 
+# ── 0. 清理旧进程 ──
+pkill -9 -f arecord 2>/dev/null
+pkill -9 -f "voice.service" 2>/dev/null
+pkill -9 -f "web/server" 2>/dev/null
+sleep 2
+
 # ── 1. Web 服务（后台）──
 echo -e "${GREEN}[OK] Web 服务启动: http://$(hostname -I | awk '{print $1}'):8765${NC}"
 WEB_PORT=8765 nohup python3 src/web/server.py > /tmp/kunpeng_web.log 2>&1 &
