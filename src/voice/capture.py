@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """capture.py — 四通道麦克风采集模块
 
-HK MIC (USB-Audio): ALSA 暴露为 2ch @ 48kHz S16_LE
+HK MIC: ALSA card 1 (plughw:1,0), 2ch @ 48kHz S16_LE
 处理链路: 2ch@48k → 立体声降混 mono → 重采样 16kHz/16bit PCM
 
-支持 sounddevice (首选) 和 arecord 子进程 (兜底)
+注意: card 0 是 Intel USB扬声器内置麦（不用），card 1 才是 HK MIC
 """
 
 from __future__ import annotations
@@ -83,7 +83,7 @@ class MicCapture:
             # arecord 兜底
             try:
                 self._proc = subprocess.Popen(
-                    ["arecord", "-D", "plughw:0,0", "-f", "S16_LE", "-r", str(SAMPLE_RATE), "-c", str(CHANNELS), "-t", "raw"],
+                    ["arecord", "-D", "plughw:1,0", "-f", "S16_LE", "-r", str(SAMPLE_RATE), "-c", str(CHANNELS), "-t", "raw"],
                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                 )
                 self._mode = 'arecord'
