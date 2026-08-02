@@ -191,6 +191,31 @@ class VoiceService:
             except Exception:
                 pass
 
+        # 4.5. 语音音量控制（本地快速处理，不调 LLM）
+        vol_keywords = {
+            "声音大": ("up", 10), "大声": ("up", 10), "响一点": ("up", 10),
+            "声音小": ("down", 10), "小声": ("down", 10), "轻一点": ("down", 10),
+            "最大声": ("set", 100), "最小声": ("set", 10), "静音": ("set", 0),
+        }
+        for kw, (action, val) in vol_keywords.items():
+            if kw in text:
+                cur_v = None
+                if hasattr(self.chat, 'hw_exe'):
+                    ok, info = self.chat.hw_exe.volume()
+                    if ok and "音量:" in info:
+                        cur_v = int(info.split(": ")[1].replace("%", ""))
+                if action == "up" and cur_v is not None:
+                    new_v = min(100, cur_v + val)
+                elif action == "down" and cur_v is not None:
+                    new_v = max(0, cur_v - val)
+                else:
+                    new_v = val
+                if hasattr(self.chat, 'hw_exe'):
+                    self.chat.hw_exe.volume(new_v)
+                    self._emit("reply", {"text": text, "reply": f"音量已调至 {new_v}%", "user": None})
+                    self._tts_cooldown_until = time.time() + 2
+                    return
+
         # 5. 对话（通过 v2.0 智能体决策——含视觉）
         if self.chat:
             user_name = identity.get("name") if identity else None

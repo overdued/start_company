@@ -133,6 +133,21 @@ class HardwareExecutor:
             b64 = base64.b64encode(data).decode("ascii")
             return True, str(p), b64
         except Exception: return False, "", ""
+    def volume(self, level=None) -> tuple[bool, str]:
+        """获取/设置扬声器音量 (0-100)"""
+        try:
+            if level is None:
+                r = subprocess.run(["amixer","-c","0","sget","PCM"], capture_output=True, text=True, timeout=5)
+                m = re.search(r'Playback (\d+)', r.stdout)
+                cur = int(int(m.group(1)) * 100 / 255) if m else 75
+                return True, f"音量: {cur}%"
+            v = max(0, min(100, int(level)))
+            raw = int(v * 255 / 100)
+            subprocess.run(["amixer","-c","0","sset","PCM",str(raw)], capture_output=True, timeout=5)
+            return True, f"音量已调至 {v}%"
+        except Exception as e:
+            return False, str(e)
+
     def speak(self, text: str) -> tuple[bool, str]:
         """TTS 语音播报（edge-tts 微软云自然语音 → espeak-ng 离线兜底）"""
         if not self.hw.speaker: return False, "扬声器不可用"
