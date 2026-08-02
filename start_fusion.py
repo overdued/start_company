@@ -134,14 +134,31 @@ class HardwareExecutor:
             return True, str(p), b64
         except Exception: return False, "", ""
     def speak(self, text: str) -> tuple[bool, str]:
-        """TTS 中文语音播报（espeak-ng 合成 → ffplay/aplay 播放）"""
+        """TTS 语音播报（edge-tts 微软云自然语音 → espeak-ng 离线兜底）"""
         if not self.hw.speaker: return False, "扬声器不可用"
+        mp3_path = "/tmp/tts_output.mp3"
         wav_path = "/tmp/tts_output.wav"
         try:
-            r = subprocess.run(["espeak-ng", "-w", wav_path, "-v", "zh", "-s", "150", text],
+            # 优先 edge-tts 微软云自然语音
+            r = subprocess.run(
+                ["edge-tts", "--voice", "zh-CN-XiaoxiaoNeural", "--text", text,
+                 "--write-media", mp3_path],
+                capture_output=True, text=True, timeout=15,
+            )
+            if r.returncode == 0 and Path(mp3_path).exists():
+                # 转 WAV 播放
+                subprocess.run(["ffmpeg", "-y", "-i", mp3_path, "-ar", "16000", "-ac", "1",
+                                wav_path], capture_output=True, timeout=10)
+            else:
+                raise RuntimeError("edge-tts failed, using espeak fallback")
+        except Exception:
+            # 兜底：espeak-ng 离线机械音
+            try:
+                subprocess.run(["espeak-ng", "-w", wav_path, "-v", "zh", "-s", "150", text],
                                capture_output=True, text=True, timeout=10)
-            if r.returncode != 0 or not Path(wav_path).exists():
-                return False, f"TTS生成失败: {r.stderr[:80]}"
+            except Exception:
+                return False, "TTS 生成失败（edge-tts 和 espeak-ng 均不可用）"
+        try:
             subprocess.run(["fuser", "-k", "/dev/snd/pcmC0D0p"], capture_output=True, timeout=2)
             r2 = subprocess.run(["aplay", "-q", wav_path], capture_output=True, text=True, timeout=10)
             if r2.returncode != 0:
@@ -276,6 +293,26 @@ TOOL_DEFINITIONS = [
                     "scope": {"type": "string", "enum": ["all", "motors", "arm"], "description": "停止范围: all=全部, motors=小车电机, arm=机械臂", "default": "all"},
                 },
             },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "radar_detect",
+            "description": "查询毫米波雷达检测结果。检测老人是否在房间内、是否跌倒、呼吸频率等。触发：'雷达'、'老人在哪'、'有人在吗'、'检测到人了吗'",
+            "parameters": {"type": "object", "properties": {
+                "mode": {"type": "string", "enum": ["presence", "fall", "breath", "all"], "description": "检测模式：presence=存在感知, fall=跌倒检测, breath=呼吸监测, all=全部"}
+            }, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wifi_sense",
+            "description": "WiFi CSI 穿墙感知。利用 WiFi 信道状态信息检测室内人员位置和活动。触发：'wifi检测'、'穿墙'、'信号检测'、'定位'",
+            "parameters": {"type": "object", "properties": {
+                "mode": {"type": "string", "enum": ["location", "activity", "count", "all"], "description": "检测模式：location=定位, activity=活动识别, count=人数统计, all=全部"}
+            }, "required": []},
         },
     },
 ]
