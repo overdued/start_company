@@ -103,12 +103,24 @@ class VoiceService:
 
     def _on_audio_block(self, block: np.ndarray):
         """30ms 音频块回调：VAD 收集语音段"""
+        energy = float(np.sqrt(np.mean(block ** 2)))
+
+        # 每 2 秒输出一次音量指示（帮助确认麦克风工作）
+        now = time.time()
+        if not hasattr(self, '_last_level_ts'):
+            self._last_level_ts = 0
+        if now - self._last_level_ts > 2.0 and energy > 0.001:
+            level = min(10, int(energy * 200))
+            bar = "█" * level + "░" * (10 - level)
+            print(f"\r  🎤 [{bar}] {'🔊 检测到声音！' if energy > 0.02 else '...'}", end="", flush=True)
+            self._last_level_ts = now
+
         is_speech = False
         if isinstance(self.vad, EnergyVAD):
             is_speech = self.vad.is_speech(block)
         else:
-            # FunASR VAD 用于离线段检测，实时用能量兜底
-            is_speech = float(np.sqrt(np.mean(block ** 2))) > 0.01
+            # 降低能量阈值让唤醒更容易
+            is_speech = energy > 0.005
 
         if is_speech:
             self._audio_buf.append(block.copy())
