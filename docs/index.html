@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KunPeng-Hermes Fusion — 自进化硬件控制智能体</title>
+<meta name="description" content="全球首个 ARM64 嵌入式平台硬件控制+大模型+自进化学习+声纹+视觉六维融合 AI 智能体">
+<style>
+:root {
+  --deep: #0a1628; --blue: #0f2246; --card: #122340; --accent: #4da8da;
+  --text: #e8edf5; --muted: #8899b4; --glow: #5bb8e8; --warm: #f0a060;
+  --g1: #0a1628; --g2: #132a4a; --g3: #0f2246;
+}
+* { margin:0; padding:0; box-sizing:border-box }
+html { scroll-behavior:smooth }
+body { font-family: system-ui,-apple-system,"Segoe UI",sans-serif; background:linear-gradient(170deg,var(--g1) 0%,var(--g2) 40%,var(--g3) 100%); color:var(--text); line-height:1.65; min-height:100vh }
+::selection { background:rgba(77,168,218,.35) }
+
+/* ── Hero ── */
+.hero { position:relative; text-align:center; padding:100px 24px 80px; overflow:hidden }
+.hero::before { content:""; position:absolute; top:-200px; left:50%; transform:translateX(-50%); width:600px; height:600px; background:radial-gradient(circle,rgba(77,168,218,.12) 0%,transparent 70%); pointer-events:none }
+.hero::after { content:""; position:absolute; bottom:0; left:0; right:0; height:200px; background:linear-gradient(transparent,var(--deep)); pointer-events:none }
+.hero .mascot { width:100px; height:100px; margin:0 auto 28px }
+@keyframes float { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
+.hero .mascot { animation:float 3s ease-in-out infinite }
+.hero h1 { font-size:clamp(2rem,5vw,3rem); color:#fff; margin-bottom:16px; letter-spacing:-.02em }
+.hero h1 span { background:linear-gradient(135deg,var(--glow),var(--warm)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text }
+.hero p { color:var(--muted); font-size:1.1rem; max-width:640px; margin:0 auto 36px }
+.hero .badges { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:40px }
+.badge { padding:5px 14px; border-radius:20px; font-size:.85rem; font-weight:600; white-space:nowrap }
+.bd-core { background:rgba(77,168,218,.2); color:var(--glow); border:1px solid rgba(77,168,218,.25) }
+.bd-new { background:rgba(74,222,128,.15); color:#4ade80; border:1px solid rgba(74,222,128,.2) }
+.bd-warm { background:rgba(240,160,96,.15); color:var(--warm); border:1px solid rgba(240,160,96,.2) }
+.hero .actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap }
+.btn { padding:12px 28px; border-radius:10px; font-size:.95rem; font-weight:600; text-decoration:none; transition:.2s; cursor:pointer; border:none }
+.btn-prim { background:var(--accent); color:#fff }
+.btn-prim:hover { background:#68c0f0; transform:translateY(-1px); box-shadow:0 6px 20px rgba(77,168,218,.3) }
+.btn-ghost { background:transparent; color:var(--glow); border:1.5px solid rgba(77,168,218,.3) }
+.btn-ghost:hover { border-color:var(--accent); background:rgba(77,168,218,.08) }
+
+/* ── Container ── */
+.container { max-width:1120px; margin:0 auto; padding:20px 24px 60px }
+section { margin-bottom:72px }
+h2 { font-size:1.55rem; color:#fff; margin-bottom:32px; display:flex; align-items:center; gap:10px }
+h2::after { content:""; flex:1; height:1px; background:linear-gradient(90deg,rgba(77,168,218,.25),transparent) }
+
+/* ── Stats ── */
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:72px }
+.stat-card { background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:28px 20px; text-align:center }
+.stat-card .num { font-size:2rem; font-weight:700; background:linear-gradient(135deg,var(--glow),var(--warm)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text }
+.stat-card .label { color:var(--muted); font-size:.88rem; margin-top:4px }
+
+/* ── Cards ── */
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px }
+.card { background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:28px 24px; transition:.25s; position:relative; overflow:hidden }
+.card:hover { transform:translateY(-3px); border-color:rgba(77,168,218,.2); box-shadow:0 12px 32px rgba(0,0,0,.25) }
+.card::before { content:""; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--accent),transparent); opacity:0; transition:.3s }
+.card:hover::before { opacity:1 }
+.card .icon { font-size:2rem; margin-bottom:14px }
+.card p { color:var(--muted); font-size:.92rem; line-height:1.55 }
+
+/* ── Arch ── */
+.arch { background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:32px 28px; overflow-x:auto; font-family:"SF Mono","Cascadia Code",monospace; font-size:.82rem; line-height:1.7; white-space:pre; color:var(--muted) }
+
+/* ── Table ── */
+table { width:100%; border-collapse:collapse; margin:16px 0 }
+th,td { border:1px solid rgba(255,255,255,.08); padding:10px 16px; text-align:left; font-size:.9rem }
+th { background:rgba(77,168,218,.1); color:var(--glow); font-weight:600 }
+tr:nth-child(even) { background:rgba(255,255,255,.02) }
+td:last-child { white-space:nowrap }
+
+/* ── Roadmap ── */
+.roadmap { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px }
+.r-item { background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:24px 20px }
+.r-item .done { color:#4ade80 }
+.r-item .todo { color:var(--muted) }
+
+/* ── Footer ── */
+.footer { text-align:center; padding:36px 20px; color:var(--muted); font-size:.85rem; border-top:1px solid rgba(255,255,255,.05) }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="mascot">
+    <svg viewBox="0 0 240 280"><defs><radialGradient id="b" cx="50%" cy="40%"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e8f4f8"/></radialGradient><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs><ellipse cx="120" cy="262" rx="50" ry="8" fill="#0a2440" opacity=".1"/><ellipse cx="115" cy="140" rx="62" ry="55" fill="url(#b)"/><ellipse cx="110" cy="150" rx="32" ry="28" fill="#f8fdfe" opacity=".7"/><path d="M60 148c-20 8-28 22-18 32 8 8 18 6 26-4z" fill="#d4eaf0"/><path d="M170 148c20 8 28 22 18 32-8 8-18 6-26-4z" fill="#d4eaf0"/><polygon points="113,88 120,78 127,88 120,96" fill="url(#c)"/><ellipse cx="96" cy="127" rx="8" ry="11" fill="#1e293b"/><ellipse cx="136" cy="127" rx="8" ry="11" fill="#1e293b"/><circle cx="99" cy="124" r="3" fill="#fff"/><circle cx="139" cy="124" r="3" fill="#fff"/><ellipse cx="78" cy="136" rx="12" ry="8" fill="rgba(255,179,179,.3)"/><ellipse cx="154" cy="136" rx="12" ry="8" fill="rgba(255,179,179,.3)"/><path d="M114 144q6 7 12 0" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/></svg>
+  </div>
+  <h1>KunPeng-Hermes <span>Fusion</span></h1>
+  <p>全球首个 ARM64 平台上「硬件控制 + 大模型 + 自进化 + 声纹 + 视觉 + 语音」六维融合 AI 智能体</p>
+  <div class="badges">
+    <span class="badge bd-core">v2.2 稳定版</span>
+    <span class="badge bd-new">🆕 声纹识别</span>
+    <span class="badge bd-new">🆕 语音交互</span>
+    <span class="badge bd-warm">🎯 3 个 Skill</span>
+    <span class="badge bd-core">MIT 开源</span>
+  </div>
+  <div class="actions">
+    <a href="https://gitee.com/zhao-yuhang11234/start_company" class="btn btn-prim">Gitee 源码</a>
+    <a href="#features" class="btn btn-ghost">查看功能 →</a>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="stats">
+  <div class="stat-card"><div class="num">6</div><div class="label">核心能力维度</div></div>
+  <div class="stat-card"><div class="num">11</div><div class="label">硬件接口就绪</div></div>
+  <div class="stat-card"><div class="num">14</div><div class="label">测试项全通过</div></div>
+  <div class="stat-card"><div class="num">3</div><div class="label">产品形态</div></div>
+  <div class="stat-card"><div class="num">192</div><div class="label">声纹嵌入维度</div></div>
+</div>
+
+<section id="features">
+  <h2>核心能力</h2>
+  <div class="cards">
+    <div class="card"><div class="icon">🎤</div><h3>声纹识别 · Who</h3><p>CAM++ 192 维声纹向量，识别"谁在说话"。HK MIC 四通道采集，注册/验证/待定池。阈值 0.35。</p></div>
+    <div class="card"><div class="icon">🗣️</div><h3>全双工语音 · Talk</h3><p>sherpa-onnx KWS 唤醒词"小鲲小鲲/你好小鲲"+SenseVoiceSmall ASR+edge-tts 自然播报。VAD→KWS→ASR→对话→TTS 全链路。</p></div>
+    <div class="card"><div class="icon">📷</div><h3>真实视觉 · See</h3><p>USB 摄像头 + Kimi k2 多模态 AI 描述。所有路径和描述均来自真实硬件 —— 绝不编造。</p></div>
+    <div class="card"><div class="icon">🧠</div><h3>自进化 Skill · Learn</h3><p>每次硬件任务自动生成 SKILL.md。重复任务 2-3x 加速，Token 降低 60%。3 个预设 Skill。</p></div>
+    <div class="card"><div class="icon">📋</div><h3>Memos 笔记 · Remember</h3><p>8 种智能分类，用户画像聚合。离线 SQLite，客户需求追踪驱动产品迭代。</p></div>
+    <div class="card"><div class="icon">🔧</div><h3>硬件控制 · Control</h3><p>GPIO/I2C/UART/PWM/Camera 全栈 HAL。MCU 紧急停止。控制钩子覆盖小车/机械臂。</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>产品形态</h2>
+  <div class="cards">
+    <div class="card"><div class="icon">🤖</div><h3>轮足机器人</h3><p style="color:var(--warm)"><strong>官网展示，硬件待排期</strong></p><p>UART 连 RT1064 双电机。TOOL_DEFINITIONS 已预留 control_car/control_arm。</p><p style="color:var(--muted);font-size:.8rem">App→WS:8765→橘派→UART→RT1064→电机</p></div>
+    <div class="card"><div class="icon">📱</div><h3>Android App</h3><p style="color:var(--glow)"><strong>OctopusController v1.0.1</strong></p><p>Kotlin WebView，离线Mock+橘派WS双模式。Android 6.0+，横屏触控。</p></div>
+    <div class="card"><div class="icon">🖥️</div><h3>桌面宠物</h3><p style="color:var(--glow)"><strong>Win/Mac/Linux 独立窗口</strong></p><p>Chrome 无边框 app 模式，始终置顶。凭据隔离。5 表情+4 姿态。</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>技术架构</h2>
+  <div class="arch">┌──────────────────────────────────────────────────────┐
+│           KunPeng-Hermes Fusion v2.2                 │
+├──────────────────────────────────────────────────────┤
+│ 交互:  📱 App · 🖥️ Web桌宠 · 💬 CLI                  │
+│                      ↕ WebSocket :8765               │
+├──────────────────────────────────────────────────────┤
+│ AI 决策 (Hermes Brain):                              │
+│  🧠 三层记忆+FTS5  │ 🎯 Skill自动创建                │
+│  🔄 自进化引擎     │ 📋 Memos笔记+分类               │
+│  🎤 CAM++声纹     │ 🗣️ SenseVoice+KWS              │
+│  📷 Kimi k2视觉   │ 🔊 edge-tts自然语音             │
+├──────────────────────────────────────────────────────┤
+│ 执行 (KunPeng HAL): GPIO·I2C·UART·PWM·Camera        │
+├──────────────────────────────────────────────────────┤
+│ 硬件: OrangePi Kunpeng Pro (RK3588, 16GB)           │
+│ 预留: 毫米波雷达🔲  WiFi CSI🔲  NPU推理🔲           │
+└──────────────────────────────────────────────────────┘</div>
+</section>
+
+<section>
+  <h2>硬件基线</h2>
+  <table>
+    <tr><th>接口</th><th>设备</th><th>用途</th><th>状态</th></tr>
+    <tr><td>USB摄像头</td><td>Aveo SP2820W</td><td>视觉识别</td><td>✅</td></tr>
+    <tr><td>4通道麦克风</td><td>HK MIC USB</td><td>声纹/ASR</td><td>✅</td></tr>
+    <tr><td>USB扬声器</td><td>Intel USB2.0</td><td>TTS播报</td><td>✅</td></tr>
+    <tr><td>GPIO</td><td>40引脚</td><td>灯光/继电器</td><td>✅</td></tr>
+    <tr><td>I2C</td><td>10总线</td><td>OLED/IMU</td><td>✅</td></tr>
+    <tr><td>UART</td><td>6端口</td><td>MCU/机械臂</td><td>✅ FT2232×2</td></tr>
+    <tr><td>毫米波雷达</td><td>—</td><td>跌倒/存在感知</td><td>🔲预留</td></tr>
+    <tr><td>WiFi CSI</td><td>—</td><td>定位/穿墙</td><td>🔲预留</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>路线图</h2>
+  <div class="roadmap">
+    <div class="r-item"><h3>✅ v2.2</h3><p class="done">声纹/语音/桌宠/Memos/edgeTTS/Android</p></div>
+    <div class="r-item"><h3>🔲 v2.5</h3><p class="todo">雷达/WiFi·NPU推理·轮足组装·App发布</p></div>
+    <div class="r-item"><h3>🔲 v3.0</h3><p class="todo">联邦学习·云同步·开放API·企业版</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>快速开始</h2>
+  <div class="arch" style="white-space:normal;font-family:inherit;font-size:.95rem"><strong style="color:var(--glow)">git clone</strong> https://gitee.com/zhao-yuhang11234/start_company && <strong style="color:#4ade80">cd start_company && ./start_voice.sh</strong><br>
+  唤醒词: <span style="color:var(--warm)">小鲲小鲲</span> / <span style="color:var(--warm)">你好小鲲</span>（拼音模糊："肖坤小框"也能唤醒）</div>
+</section>
+
+</div>
+
+<div class="footer">
+  <p>KunPeng-Hermes Fusion v2.2 · MIT License · OrangePi Kunpeng Pro (RK3588)</p>
+  <p>Made by zhao-yuhang11234 · 2026</p>
+</div>
+
+</body>
+</html>

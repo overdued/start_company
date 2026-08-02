@@ -569,6 +569,60 @@ async def list_photos():
     return {"photos": photos}
 
 
+@app.get("/api/history")
+async def get_chat_history(session: str = "", query: str = "", limit: int = 50):
+    """返回对话历史记录 — App/Web 拉取聊天记录。
+
+    支持参数:
+    - session: 指定会话 ID（空=最新会话）
+    - query: 搜索关键词（FTS5 全文搜索）
+    - limit: 返回条数上限
+    """
+    try:
+        from hermes_bridge.session_search import SessionSearchDB
+        sdb = SessionSearchDB(db_path="data/sessions.db")
+    except Exception:
+        sdb = None
+
+    if sdb:
+        if query:
+            results = sdb.search(query, limit=limit)
+            return {"messages": results, "total": len(results), "query": query}
+        elif session:
+            msgs = sdb.get_session_messages(session, limit=limit)
+            return {"session_id": session, "messages": msgs, "total": len(msgs)}
+        else:
+            recent = sdb.get_recent_sessions(limit=1)
+            if recent:
+                sid = recent[0]["session_id"]
+                msgs = sdb.get_session_messages(sid, limit=limit)
+                return {"session_id": sid, "messages": msgs, "total": len(msgs)}
+            return {"messages": [], "total": 0}
+    else:
+        return {"messages": _chat_history, "total": len(_chat_history), "note": "in-memory (SessionSearchDB unavailable)"}
+
+
+@app.get("/api/sessions")
+async def list_sessions(limit: int = 20):
+    """列出最近的会话."""
+    try:
+        from hermes_bridge.session_search import SessionSearchDB
+        sdb = SessionSearchDB(db_path="data/sessions.db")
+        sessions = sdb.get_recent_sessions(limit=limit)
+        return {"sessions": sessions, "total": len(sessions)}
+    except Exception:
+        return {"sessions": [{"session_id": "memory_only", "summary": "In-memory history (FTS5 unavailable)"}], "total": 1}
+
+
+@app.get("/site")
+async def serve_site():
+    """Serve the product website."""
+    site_file = DOCS_DIR / "index.html"
+    if site_file.is_file():
+        return HTMLResponse(site_file.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>Site not found</h1>", status_code=404)
+
+
 # ===========================================================================
 # Environment simulation helpers
 # ===========================================================================
@@ -675,6 +729,15 @@ async def _handle_chat_send(data: dict, ws: WebSocket) -> dict:
 
             # Save AI reply to history
             _append_chat_msg("assistant", reply or "")
+
+            # Persist to SessionSearchDB for searchable history
+            try:
+                from hermes_bridge.session_search import SessionSearchDB
+                sdb = SessionSearchDB(db_path="data/sessions.db")
+                sdb.append_interaction(str(time.time()), "user", text)
+                sdb.append_interaction(str(time.time()), "agent", reply or "")
+            except Exception:
+                pass
 
             result = {"action": "chat.reply", "data": {"text": reply}}
 
