@@ -149,35 +149,39 @@ class VoiceService:
     def _process_segment(self, wav: np.ndarray):
         """处理一段语音：能量/跟踪窗口唤醒 → ASR → 声纹 → 对话"""
         duration = len(wav) / TARGET_RATE
+        energy = float(np.sqrt(np.mean(wav ** 2)))
+        print(f"\n  [DEBUG] 收到语音段: {duration:.1f}s, 能量={energy:.4f}")
+
         if duration < 0.3:
+            print(f"  [DEBUG] 太短，跳过")
             return
 
         # 1. 唤醒检测（跟踪窗口内免唤醒，否则能量唤醒）
         woke = False
-        energy = float(np.sqrt(np.mean(wav ** 2)))
         if self.tracker.is_within_window():
-            woke = True  # 跟踪窗口内直接接受
-        elif energy > 0.01:
-            woke = True  # 能量唤醒：说话够大声就触发
+            woke = True
+        elif energy > 0.005:
+            woke = True
             self._emit("wake", {"keyword": "能量唤醒"})
 
-        if woke:
-                woke = True
-                self._emit("wake", {"keyword": hit})
-
         if not woke:
+            print(f"  [DEBUG] 未唤醒 (跟踪窗口={self.tracker.is_within_window()})")
             return
 
+        print(f"  [DEBUG] ✅ 已唤醒，开始 ASR...")
         self._state = "processing"
         self._emit("listening", {})
 
         # 2. ASR 转写
         if not self.asr:
+            print(f"  [DEBUG] ❌ ASR 未加载")
             self._state = "standby"
             return
         text, dur = self.asr.transcribe(wav)
+        print(f"  [DEBUG] ASR 结果: '{text}' ({dur:.1f}s)")
         if not text:
             self._state = "standby"
+            print(f"  [DEBUG] ASR 返回空，跳过")
             return
         self._emit("asr", {"text": text, "duration": dur})
 
