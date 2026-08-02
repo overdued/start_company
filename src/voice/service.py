@@ -103,6 +103,9 @@ class VoiceService:
 
     def _on_audio_block(self, block: np.ndarray):
         """30ms 音频块回调：持续累积语音，长停顿后一次性处理"""
+        # TTS 播放后 3 秒静默期——防止录到自己的回复
+        if hasattr(self, '_tts_cooldown_until') and time.time() < self._tts_cooldown_until:
+            return
         energy = float(np.sqrt(np.mean(block ** 2)))
         now = time.time()
         if not hasattr(self, '_last_level_ts'): self._last_level_ts = 0
@@ -217,8 +220,9 @@ class VoiceService:
             # 身份 → USER.md / Memos 个性化注入
             self._inject_identity(identity, text)
 
-            # 6. TTS 播报（独立线程，不阻塞语音管道）
+            # 6. TTS 播报（独立线程）+ 冷却期防回声
             if hasattr(self.chat, 'hw_exe') and self.chat.hw.speaker:
+                self._tts_cooldown_until = time.time() + 4  # 播完后 4 秒内忽略麦克风
                 reply_text = reply[:100]
                 threading.Thread(
                     target=lambda: self.chat.hw_exe.speak(reply_text),
