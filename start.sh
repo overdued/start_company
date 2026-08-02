@@ -26,9 +26,9 @@ source "$VENV_PATH/bin/activate"
 export PYTHONPATH="$SCRIPT_DIR/src"
 
 # ── 0. 清理旧进程 ──
-pkill -9 -f arecord 2>/dev/null
-pkill -9 -f "voice.service" 2>/dev/null
-pkill -9 -f "web/server" 2>/dev/null
+pkill -9 -f arecord 2>/dev/null || true
+pkill -9 -f "voice.service" 2>/dev/null || true
+pkill -9 -f "web/server" 2>/dev/null || true
 sleep 2
 
 # ── 1. Web 服务（后台）──
