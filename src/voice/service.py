@@ -201,9 +201,13 @@ class VoiceService:
             # 身份 → USER.md / Memos 个性化注入
             self._inject_identity(identity, text)
 
-            # 6. TTS 播报
+            # 6. TTS 播报（独立线程，不阻塞语音管道）
             if hasattr(self.chat, 'hw_exe') and self.chat.hw.speaker:
-                self.chat.hw_exe.speak(reply[:100])
+                reply_text = reply[:100]
+                threading.Thread(
+                    target=lambda: self.chat.hw_exe.speak(reply_text),
+                    daemon=True
+                ).start()
 
         self.tracker.refresh()
         self._state = "standby"

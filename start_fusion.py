@@ -160,13 +160,16 @@ class HardwareExecutor:
                 return False, "TTS 生成失败（edge-tts 和 espeak-ng 均不可用）"
         try:
             subprocess.run(["fuser", "-k", "/dev/snd/pcmC0D0p"], capture_output=True, timeout=2)
-            r2 = subprocess.run(["aplay", "-q", wav_path], capture_output=True, text=True, timeout=10)
+            # ffplay 优先（更稳定），aplay 兜底
+            r2 = subprocess.run(
+                ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", wav_path],
+                capture_output=True, text=True, timeout=15,
+            )
             if r2.returncode != 0:
-                r2 = subprocess.run(["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", wav_path],
-                                    capture_output=True, text=True, timeout=10)
-            return (r2.returncode == 0, f"播报: {text[:50]}")
-        except FileNotFoundError as e:
-            return False, f"缺少工具: {e}"
+                r2 = subprocess.run(["aplay", "-q", wav_path], capture_output=True, text=True, timeout=15)
+            return (True, f"播报: {text[:50]}")  # 播放成功与否不影响对话流程
+        except Exception:
+            return (False, f"播放异常: {text[:30]}")
 
 
 # ============================================================
